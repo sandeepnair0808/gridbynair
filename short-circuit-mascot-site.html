@@ -1,0 +1,72 @@
+<!-- Existing HTML retained above -->
+<!-- Add this just before </body> -->
+<div id="short-circuit-calculator" style="position: fixed; bottom: 100px; left: 20px; width: 320px; padding: 20px; background: #fff; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 9999; display: none; animation: pulseGlow 1.5s infinite alternate;">
+  <h3 style="margin-top: 0; color: #d32f2f; font-weight: 700;">⚡ Instant Short Circuit Calculator</h3>
+  <label>Fault Current (kA):</label>
+  <input id="faultCurrent" type="number" placeholder="e.g. 25" style="width:100%; padding: 6px; margin: 6px 0 12px; border-radius: 8px; border: 1px solid #ccc;">
+  <label>Impedance (Z%)</label>
+  <input id="impedance" type="number" placeholder="e.g. 7.5" style="width:100%; padding: 6px; margin: 6px 0 12px; border-radius: 8px; border: 1px solid #ccc;">
+  <label>Base Voltage (kV)</label>
+  <input id="voltage" type="number" placeholder="e.g. 132" style="width:100%; padding: 6px; margin: 6px 0 12px; border-radius: 8px; border: 1px solid #ccc;">
+  <button onclick="calculateSC()" style="width:100%; background:#0a66c2; color:white; border:none; padding: 10px; border-radius: 8px; font-weight: bold; cursor:pointer;">⚙️ Compute</button>
+  <div id="scResult" style="margin-top:12px; font-weight:600; color:#0a66c2;"></div>
+  <canvas id="scChart" style="margin-top:20px; max-width:100%; height:150px;"></canvas>
+</div>
+
+<style>
+@keyframes pulseGlow {
+  from { box-shadow: 0 0 10px rgba(211, 47, 47, 0.3); }
+  to { box-shadow: 0 0 30px rgba(211, 47, 47, 0.6); }
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function calculateSC() {
+  const I = parseFloat(document.getElementById('faultCurrent').value);
+  const Z = parseFloat(document.getElementById('impedance').value);
+  const V = parseFloat(document.getElementById('voltage').value);
+  const resultDiv = document.getElementById('scResult');
+
+  if (!isNaN(I) && !isNaN(Z) && !isNaN(V) && Z !== 0) {
+    const mva = (I * 100) / Z;
+    const kva = I * Math.sqrt(3) * V;
+    const pu = (kva / 1000) * (Z / 100);
+    resultDiv.innerHTML = `Calculated MVA: <b>${mva.toFixed(2)}</b><br>3-phase S.C Power: <b>${kva.toFixed(2)} kVA</b><br>Per-unit Fault Level: <b>${pu.toFixed(3)} pu</b>`;
+
+    const ctx = document.getElementById('scChart').getContext('2d');
+    if (window.scChartInstance) window.scChartInstance.destroy();
+    window.scChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['MVA', 'kVA', 'pu'],
+        datasets: [{
+          label: 'Fault Values',
+          data: [mva, kva, pu],
+          backgroundColor: ['#d32f2f', '#0a66c2', '#ffa000'],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  } else {
+    resultDiv.textContent = 'Please enter valid values for all fields.';
+  }
+}
+
+const scCalculator = document.getElementById('short-circuit-calculator');
+const scToolLink = document.querySelector("a[href='short-circuit-tool.html']");
+if (scToolLink) {
+  scToolLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    scCalculator.style.display = scCalculator.style.display === 'none' ? 'block' : 'none';
+  });
+}
+</script>
+</body>
+</html>
