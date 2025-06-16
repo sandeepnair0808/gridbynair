@@ -34,104 +34,35 @@
       background: #f4f6f8;
       color: #333;
     }
+
     header {
       background-color: #0a66c2;
       padding: 20px;
       color: white;
       text-align: center;
     }
-    header h1 {
-      margin: 0;
-      font-size: 2.2rem;
-    }
-    header p {
-      font-size: 1.1rem;
-      margin-top: 5px;
-    }
+
     nav {
       text-align: center;
       padding: 12px 0;
       background: #ffffff;
       box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
+
     nav a {
       color: #0a66c2;
       text-decoration: none;
       margin: 0 15px;
       font-weight: bold;
     }
+
     .container {
       max-width: 900px;
       margin: auto;
       padding: 40px 20px;
       background: white;
     }
-    .hero {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .hero h2 {
-      font-size: 1.8rem;
-      color: #0a66c2;
-    }
-    .hero p {
-      max-width: 700px;
-      margin: auto;
-      font-size: 1.05rem;
-      line-height: 1.6;
-    }
-    .buttons {
-      margin-top: 25px;
-    }
-    .buttons a {
-      display: inline-block;
-      padding: 12px 20px;
-      margin: 8px;
-      background-color: #0a66c2;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-    .donation {
-      text-align: center;
-      margin-top: 60px;
-    }
-    .donation p {
-      font-size: 1.05rem;
-    }
-    .donation a {
-      display: inline-block;
-      padding: 10px 20px;
-      margin: 8px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .donation .coffee {
-      background-color: #ffdd00;
-      color: #000;
-    }
-    .donation .gpay {
-      background-color: #4285f4;
-      color: white;
-    }
-    .donation img {
-      max-width: 200px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      margin-top: 10px;
-    }
-    .contact-icons {
-      text-align: center;
-      margin-top: 40px;
-    }
-    .contact-icons a {
-      color: #0a66c2;
-      margin: 0 10px;
-      font-size: 1.5rem;
-      text-decoration: none;
-    }
+
     footer {
       text-align: center;
       padding: 20px;
@@ -147,10 +78,12 @@
       z-index: 9999;
       pointer-events: none;
     }
+
     #mascot {
       width: 100%;
       display: block;
     }
+
     .eye {
       position: absolute;
       width: 12px;
@@ -160,8 +93,17 @@
       transition: transform 0.05s linear;
       z-index: 10001;
     }
-    .left-eye { top: 68px; left: 48px; }
-    .right-eye { top: 68px; left: 98px; }
+
+    .left-eye {
+      top: 52px;
+      left: 58px;
+    }
+
+    .right-eye {
+      top: 52px;
+      left: 88px;
+    }
+
     .eyelid {
       position: absolute;
       width: 12px;
@@ -172,24 +114,25 @@
       pointer-events: none;
       opacity: 0;
     }
+
     .eyelid.blink {
       animation: blink 0.25s ease-in-out;
     }
+
     @keyframes blink {
       0% { opacity: 0; transform: scaleY(0); }
       50% { opacity: 1; transform: scaleY(1); }
       100% { opacity: 0; transform: scaleY(0); }
     }
-    .eyelid.left { top: 68px; left: 48px; }
-    .eyelid.right { top: 68px; left: 98px; }
 
-    @media (max-width: 600px) {
-      header h1 {
-        font-size: 1.8rem;
-      }
-      .hero h2 {
-        font-size: 1.5rem;
-      }
+    .eyelid.left {
+      top: 52px;
+      left: 58px;
+    }
+
+    .eyelid.right {
+      top: 52px;
+      left: 88px;
     }
   </style>
 </head>
@@ -207,35 +150,7 @@
   </nav>
 
   <div class="container">
-    <section class="hero">
-      <h2>Welcome</h2>
-      <p>
-        I'm Sandeep Nair, a power systems engineer specializing in Siemens PTI PSS/E, Python-based automation, and transmission planning. I build tools and workflows for load flow simulations, contingency analysis, transformer loading, dynamic stability studies, and renewable integration. This site shares my guides and research with the global energy engineering community.
-      </p>
-      <div class="buttons">
-        <a href="psse-guide.html">Read PSS/E Guide</a>
-        <a href="downloads.html">Access Tools</a>
-        <a href="network-viewer.html">View Grid</a>
-        <a href="contingency-explainer.html">Contingency Analysis</a>
-        <a href="transformer-loading.html">Transformer Loading Explained</a>
-        <a href="drive-mapping.html">Drive Mapping</a>
-      </div>
-    </section>
-
-    <section class="donation">
-      <p>⚡ This site is dedicated to promoting the advancement of grid studies, renewable integration, and power system automation.</p>
-      <p>If you’ve found these tools or guides helpful, consider <strong>supporting the effort</strong> 🙏</p>
-      <a class="coffee" href="https://www.buymeacoffee.com/YOUR_HANDLE" target="_blank">☕ Buy Me a Coffee</a>
-      <a class="gpay" href="https://pay.google.com/gp/p/YOUR_GPAY_LINK" target="_blank">💳 Donate via GPay</a>
-      <p><strong>Or scan the QR code:</strong></p>
-      <img src="Qrcode.png" alt="GPay QR Code">
-    </section>
-
-    <section class="contact-icons">
-      <a href="mailto:sandeep.nair@1898andco.com" title="Email"><i class="fas fa-envelope"></i></a>
-      <a href="https://linkedin.com/in/nairsandeep0808" target="_blank" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
-      <a href="https://github.com/sandeepnair0808" target="_blank" title="GitHub"><i class="fab fa-github"></i></a>
-    </section>
+    <!-- Your main content here -->
   </div>
 
   <footer>
