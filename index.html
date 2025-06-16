@@ -1,198 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sandeep Nair | Siemens PTI PSS/E Expert | Grid Modeling & Load Flow Engineer</title>
+<style>
+  #mascot-wrapper {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 160px;
+    z-index: 9999;
+    pointer-events: none;
+  }
 
-  <!-- SEO Meta -->
-  <meta name="description" content="Sandeep Nair is a Siemens PTI PSS/E specialist with 15+ years of experience in power system studies, load flow simulations, grid modeling, automation with Python, dynamic analysis, contingency screening, and transformer loading.">
-  <meta name="keywords" content="Sandeep Nair, Siemens PTI, PSS/E, PSSE, psse scripting, psse automation, gridbynair, load flow analysis, contingency analysis, dynamic simulation, transformer loading, grid modeling, power system simulation, steady-state analysis, renewable integration, Python PSS/E, network modeling, planning studies, PSS/E scripts, bus fault analysis, transmission planning, grid interconnection, voltage stability, system stability, EMT simulation, power system consultant, renewable penetration, PSSE tools, PSSE API, energy studies, SCADA simulation, NERC compliance, Sandeep PSS/E expert, grid studies by Sandeep Nair, grid automation Python, PSSE Siemens">
-  <meta name="author" content="Sandeep Nair">
-  <link rel="canonical" href="https://gridbynair.com/" />
+  #mascot {
+    width: 100%;
+    display: block;
+  }
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="Sandeep Nair | Siemens PTI PSS/E Consultant | Gridbynair.com" />
-  <meta property="og:description" content="Learn PSS/E scripting, Python automation, load flow modeling, contingency simulation, and dynamic analysis from Sandeep Nair – a power systems specialist." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://gridbynair.com/" />
-  <meta property="og:image" content="https://gridbynair.com/og-preview.jpg" />
+  .eye {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: black;
+    border-radius: 50%;
+    transition: transform 0.05s linear;
+    z-index: 10001;
+  }
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Sandeep Nair | Power Systems Consultant | PSSE, Python, Loadflow" />
-  <meta name="twitter:description" content="Explore expert tools and training for Siemens PSS/E, dynamic simulation, and load flow modeling from Sandeep Nair at gridbynair.com" />
-  <meta name="twitter:image" content="https://gridbynair.com/og-preview.jpg" />
+  .left-eye {
+    top: 61px;
+    left: 47px;
+  }
 
-  <!-- Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  .right-eye {
+    top: 61px;
+    left: 85px;
+  }
 
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      background: #f4f6f8;
-      color: #333;
-    }
+  .eyelid {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #f4f6f8;
+    border-radius: 50%;
+    z-index: 10002;
+    pointer-events: none;
+    opacity: 0;
+  }
 
-    header {
-      background-color: #0a66c2;
-      padding: 20px;
-      color: white;
-      text-align: center;
-    }
+  .eyelid.blink {
+    animation: blink 1s ease-in-out;
+  }
 
-    nav {
-      text-align: center;
-      padding: 12px 0;
-      background: #ffffff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    }
+  @keyframes blink {
+    0% { opacity: 0; transform: scaleY(0); }
+    50% { opacity: 1; transform: scaleY(1); }
+    100% { opacity: 0; transform: scaleY(0); }
+  }
 
-    nav a {
-      color: #0a66c2;
-      text-decoration: none;
-      margin: 0 15px;
-      font-weight: bold;
-    }
+  .eyelid.left {
+    top: 61px;
+    left: 47px;
+  }
 
-    .container {
-      max-width: 900px;
-      margin: auto;
-      padding: 40px 20px;
-      background: white;
-    }
-
-    footer {
-      text-align: center;
-      padding: 20px;
-      font-size: 0.9rem;
-      color: #666;
-    }
-
-    #mascot-wrapper {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 160px;
-      z-index: 9999;
-      pointer-events: none;
-    }
-
-    #mascot {
-      width: 100%;
-      display: block;
-    }
-
-    .eye {
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      background: black;
-      border-radius: 50%;
-      transition: transform 0.05s linear;
-      z-index: 10001;
-    }
-
-    .left-eye {
-      top: 52px;
-      left: 58px;
-    }
-
-    .right-eye {
-      top: 52px;
-      left: 88px;
-    }
-
-    .eyelid {
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      background: #f4f6f8;
-      border-radius: 50%;
-      z-index: 10002;
-      pointer-events: none;
-      opacity: 0;
-    }
-
-    .eyelid.blink {
-      animation: blink 0.25s ease-in-out;
-    }
-
-    @keyframes blink {
-      0% { opacity: 0; transform: scaleY(0); }
-      50% { opacity: 1; transform: scaleY(1); }
-      100% { opacity: 0; transform: scaleY(0); }
-    }
-
-    .eyelid.left {
-      top: 52px;
-      left: 58px;
-    }
-
-    .eyelid.right {
-      top: 52px;
-      left: 88px;
-    }
-  </style>
-</head>
-<body>
-
-  <header>
-    <h1>Sandeep Nair</h1>
-    <p>Transmission Planner | PSS/E | Python Automation</p>
-  </header>
-
-  <nav>
-    <a href="index.html">Home</a>
-    <a href="psse-guide.html">PSS/E Guide</a>
-    <a href="downloads.html">Downloads</a>
-  </nav>
-
-  <div class="container">
-    <!-- Your main content here -->
-  </div>
-
-  <footer>
-    &copy; 2025 Sandeep Nair · gridbynair.com
-  </footer>
-
-  <!-- Mascot -->
-  <div id="mascot-wrapper">
-    <img id="mascot" src="engineer-mascot.png" alt="Engineer Mascot" />
-    <div class="eye left-eye"></div>
-    <div class="eye right-eye"></div>
-    <div class="eyelid left eyelid-left"></div>
-    <div class="eyelid right eyelid-right"></div>
-  </div>
-
-  <script>
-    const eyes = document.querySelectorAll('.eye');
-    document.addEventListener('mousemove', (e) => {
-      eyes.forEach(eye => {
-        const rect = eye.getBoundingClientRect();
-        const eyeX = rect.left + rect.width / 2;
-        const eyeY = rect.top + rect.height / 2;
-        const angle = Math.atan2(e.clientY - eyeY, e.clientX - eyeX);
-        const offset = 4;
-        const x = Math.cos(angle) * offset;
-        const y = Math.sin(angle) * offset;
-        eye.style.transform = `translate(${x}px, ${y}px)`;
-      });
-    });
-
-    const leftLid = document.querySelector('.eyelid-left');
-    const rightLid = document.querySelector('.eyelid-right');
-    function blink() {
-      leftLid.classList.add('blink');
-      rightLid.classList.add('blink');
-      setTimeout(() => {
-        leftLid.classList.remove('blink');
-        rightLid.classList.remove('blink');
-      }, 250);
-    }
-    setInterval(blink, 4000);
-  </script>
-
-</body>
-</html>
+  .eyelid.right {
+    top: 61px;
+    left: 85px;
+  }
+</style>
