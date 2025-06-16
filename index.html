@@ -24,6 +24,22 @@
   <meta name="twitter:description" content="Access load flow simulators, PSSE scripting tutorials, short circuit tools, and automation workflows by Sandeep Nair." />
   <meta name="twitter:image" content="https://gridbynair.com/og-preview.jpg" />
 
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Sandeep Nair",
+    "url": "https://gridbynair.com",
+    "jobTitle": "Power Systems Engineer",
+    "sameAs": [
+      "https://www.linkedin.com/in/YOUR_LINK",
+      "https://github.com/YOUR_GITHUB"
+    ]
+  }
+  </script>
+
+  <link rel="icon" href="favicon.ico" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
@@ -33,35 +49,30 @@
       background: #f4f6f8;
       color: #333;
     }
-
     header {
       background-color: #0a66c2;
       padding: 20px;
       color: white;
       text-align: center;
     }
-
     nav {
       text-align: center;
       padding: 12px 0;
       background: #ffffff;
       box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
-
     nav a {
       color: #0a66c2;
       text-decoration: none;
       margin: 0 15px;
       font-weight: bold;
     }
-
     .container {
       max-width: 900px;
       margin: auto;
       padding: 40px 20px;
       background: white;
     }
-
     .buttons a {
       display: inline-block;
       padding: 12px 20px;
@@ -72,14 +83,12 @@
       border-radius: 4px;
       font-weight: bold;
     }
-
     footer {
       text-align: center;
       padding: 20px;
       font-size: 0.9rem;
       color: #666;
     }
-
     #mascot-wrapper {
       position: fixed;
       bottom: 20px;
@@ -87,13 +96,11 @@
       width: 160px;
       z-index: 9999;
     }
-
     #mascot {
       width: 100%;
       display: block;
       cursor: pointer;
     }
-
     .eye, .eyelid {
       pointer-events: none;
       position: absolute;
@@ -101,58 +108,31 @@
       height: 10px;
       border-radius: 50%;
     }
-
     .eye {
       background: black;
       z-index: 10001;
     }
-
-    .left-eye {
-      top: 50px;
-      left: 60px;
-    }
-
-    .right-eye {
-      top: 50px;
-      left: 78px;
-    }
-
+    .left-eye { top: 50px; left: 60px; }
+    .right-eye { top: 50px; left: 78px; }
     .eyelid {
       background: #f4f6f8;
       z-index: 10002;
       opacity: 0;
     }
-
-    .eyelid.left {
-      top: 50px;
-      left: 60px;
-    }
-
-    .eyelid.right {
-      top: 50px;
-      left: 78px;
-    }
-
-    .eyelid.blink {
-      animation: blink 1s ease-in-out;
-    }
-
+    .eyelid.left { top: 50px; left: 60px; }
+    .eyelid.right { top: 50px; left: 78px; }
+    .eyelid.blink { animation: blink 1s ease-in-out; }
     @keyframes blink {
       0% { opacity: 0; transform: scaleY(0); }
       50% { opacity: 1; transform: scaleY(1); }
       100% { opacity: 0; transform: scaleY(0); }
     }
-
     @keyframes explode {
       0% { transform: scale(1) rotate(0deg); opacity: 1; }
       50% { transform: scale(1.8) rotate(180deg); opacity: 0.5; }
       100% { transform: scale(0) rotate(360deg); opacity: 0; }
     }
-
-    #mascot.explode {
-      animation: explode 0.8s ease-out forwards;
-    }
-
+    #mascot.explode { animation: explode 0.8s ease-out forwards; }
     #speech-bubble {
       position: fixed;
       bottom: 190px;
@@ -165,7 +145,6 @@
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       display: none;
     }
-
     .floating-contact {
       position: fixed;
       bottom: 300px;
@@ -179,7 +158,6 @@
       font-size: 0.9rem;
       z-index: 10000;
     }
-
     .donation {
       position: fixed;
       bottom: 160px;
@@ -190,7 +168,6 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       z-index: 9998;
     }
-
     .donation a {
       display: block;
       margin: 4px 0;
@@ -200,31 +177,38 @@
       text-decoration: none;
       font-weight: bold;
     }
-
-    .donation .coffee {
-      background-color: #ffdd00;
-      color: #000;
+    .donation .coffee { background-color: #ffdd00; color: #000; }
+    .donation .gpay { background-color: #4285f4; color: white; }
+    #mascot-menu {
+      display: none;
+      position: fixed;
+      bottom: 220px;
+      right: 30px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 10000;
     }
-
-    .donation .gpay {
-      background-color: #4285f4;
-      color: white;
+    #mascot-menu a {
+      display: block;
+      margin: 5px 0;
+      text-decoration: none;
+      color: #0a66c2;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-
   <header>
     <h1>Sandeep Nair</h1>
     <p>Transmission Planner | PSS/E | Python Automation</p>
   </header>
-
   <nav>
     <a href="index.html">Home</a>
     <a href="psse-guide.html">PSS/E Guide</a>
     <a href="downloads.html">Downloads</a>
   </nav>
-
   <div class="container">
     <section class="hero">
       <h2>Welcome</h2>
@@ -245,20 +229,13 @@
       </div>
     </section>
   </div>
-
-  <footer>
-    &copy; 2025 Sandeep Nair · gridbynair.com
-  </footer>
-
-  <!-- Floating UI -->
+  <footer>&copy; 2025 Sandeep Nair · gridbynair.com</footer>
   <a href="mailto:sandeep.nair@1898andco.com" class="floating-contact">✉️ Contact</a>
   <div class="donation">
     <a class="coffee" href="https://www.buymeacoffee.com/YOUR_HANDLE" target="_blank">☕ Buy Me a Coffee</a>
     <a class="gpay" href="https://pay.google.com/gp/p/YOUR_GPAY_LINK" target="_blank">💳 Donate via GPay</a>
   </div>
   <div id="speech-bubble">Need help? Click me 💥</div>
-
-  <!-- Mascot -->
   <div id="mascot-wrapper">
     <img id="mascot" src="engineer-mascot.png" alt="Engineer Mascot" />
     <div class="eye left-eye"></div>
@@ -266,13 +243,28 @@
     <div class="eyelid left eyelid-left"></div>
     <div class="eyelid right eyelid-right"></div>
   </div>
-
+  <div id="mascot-menu">
+    <a href="loadflow-converter.html">🔀 Load Flow Converter</a>
+    <a href="short-circuit-tool.html">⚡ Short Circuit Tool</a>
+    <a href="voltage-profile.html">📊 Voltage Profile Explorer</a>
+  </div>
   <script>
     const eyes = document.querySelectorAll('.eye');
     const leftLid = document.querySelector('.eyelid-left');
     const rightLid = document.querySelector('.eyelid-right');
     const mascot = document.getElementById('mascot');
     const speechBubble = document.getElementById('speech-bubble');
+    const mascotMenu = document.getElementById('mascot-menu');
+
+    let clickCount = 0;
+    const tips = [
+      "Need to convert a raw case? Try the Load Flow Converter!",
+      "Use the Short Circuit Calculator for fast SC analysis.",
+      "Automate base case comparisons with Python scripts!",
+      "Check out Voltage Profile Explorer for visual insights.",
+      "Drive Mapping can help you locate your simulation files faster."
+    ];
+    let tipIndex = 0;
 
     document.addEventListener('mousemove', (e) => {
       eyes.forEach(eye => {
@@ -297,14 +289,22 @@
     }
     setInterval(blink, 4000);
 
+    function showNextTip() {
+      speechBubble.textContent = tips[tipIndex];
+      speechBubble.style.display = 'block';
+      tipIndex = (tipIndex + 1) % tips.length;
+    }
+    setInterval(showNextTip, 15000);
+
     mascot.addEventListener('mouseenter', () => {
       speechBubble.style.display = 'block';
+      speakText("Hi! I can help you with PSSE scripts and power system tools.");
     });
     mascot.addEventListener('mouseleave', () => {
       speechBubble.style.display = 'none';
     });
-
     mascot.addEventListener('click', () => {
+      clickCount++;
       mascot.classList.add('explode');
       speechBubble.style.display = 'none';
       setTimeout(() => {
@@ -314,8 +314,24 @@
         mascot.style.display = 'block';
         mascot.classList.remove('explode');
       }, 5000);
+      mascotMenu.style.display = mascotMenu.style.display === 'block' ? 'none' : 'block';
+      if (clickCount === 5) {
+        alert("🎉 You've unlocked an experimental tool!");
+        window.location.href = 'experimental-tools.html';
+      }
     });
-  </script>
 
+    function speakText(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.pitch = 1;
+      utterance.rate = 1;
+      speechSynthesis.speak(utterance);
+    }
+
+    const hour = new Date().getHours();
+    if (hour >= 19 || hour < 6) {
+      mascot.src = 'engineer-mascot-night.png';
+    }
+  </script>
 </body>
 </html>
