@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voltage Profile Explorer | Sandeep Nair</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f7fa;
+      padding: 40px;
+      color: #333;
+    }
+    .container {
+      max-width: 720px;
+      margin: auto;
+      padding: 30px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+    h2 {
+      color: #0a66c2;
+      text-align: center;
+      margin-top: 0;
+    }
+    label {
+      font-weight: 600;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    input[type="file"] {
+      padding: 0;
+    }
+    button {
+      background: #0a66c2;
+      color: white;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      margin-top: 12px;
+    }
+    canvas {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📊 Voltage Profile Explorer</h2>
+    <p>Enter voltages at different buses (in pu or kV), upload CSV, or compare profiles.</p>
+
+    <label for="busVoltages">Enter Profile A Voltages (comma-separated):</label>
+    <textarea id="busVoltages" placeholder="e.g. 1.02, 1.01, 0.98, 0.95, 0.92"></textarea>
+
+    <label for="compareVoltages">Enter Profile B (for comparison):</label>
+    <textarea id="compareVoltages" placeholder="optional – e.g. 1.03, 1.02, 0.99, 0.96, 0.93"></textarea>
+
+    <label for="csvUpload">📁 Upload CSV File:</label>
+    <input type="file" id="csvUpload" accept=".csv" />
+
+    <button onclick="plotVoltageProfile()">🔍 Plot Voltage Profile</button>
+
+    <canvas id="voltageChart" height="120"></canvas>
+  </div>
+
+  <script>
+    document.getElementById('csvUpload').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const text = event.target.result;
+          document.getElementById('busVoltages').value = text.trim();
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    function parseVoltages(text) {
+      return text.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+    }
+
+    function plotVoltageProfile() {
+      const primary = parseVoltages(document.getElementById('busVoltages').value);
+      const secondary = parseVoltages(document.getElementById('compareVoltages').value);
+
+      if (primary.length === 0) {
+        alert("Please enter at least one valid voltage in Profile A.");
+        return;
+      }
+
+      const labels = primary.map((_, i) => `Bus ${i + 1}`);
+      const datasets = [
+        {
+          label: 'Profile A',
+          data: primary,
+          borderColor: '#0a66c2',
+          backgroundColor: '#0a66c2',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 5
+        }
+      ];
+
+      if (secondary.length === primary.length) {
+        datasets.push({
+          label: 'Profile B',
+          data: secondary,
+          borderColor: '#f57c00',
+          backgroundColor: '#f57c00',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 5
+        });
+      }
+
+      const ctx = document.getElementById('voltageChart').getContext('2d');
+      if (window.voltageChartInstance) window.voltageChartInstance.destroy();
+
+      window.voltageChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { boxWidth: 12, font: { size: 13 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const v = ctx.raw;
+                  return `Voltage: ${v.toFixed(3)} (${v < 0.95 ? '⚠️ Low' : v > 1.05 ? '⚠️ High' : 'OK'})`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              min: 0.8,
+              max: 1.2,
+              title: {
+                display: true,
+                text: 'Voltage (pu or kV)'
+              },
+              ticks: {
+                callback: function(value) {
+                  if (value < 0.95 || value > 1.05) return `⚠️ ${value}`;
+                  return value;
+                }
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Bus Number'
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
