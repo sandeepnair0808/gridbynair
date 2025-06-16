@@ -138,18 +138,52 @@
       font-size: 0.9rem;
       color: #666;
     }
-    @media (max-width: 600px) {
-      header h1 {
-        font-size: 1.8rem;
-      }
-      .hero h2 {
-        font-size: 1.5rem;
-      }
+    #mascot-wrapper {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 160px;
+      z-index: 9999;
+      pointer-events: none;
     }
+    #mascot {
+      width: 100%;
+      display: block;
+    }
+    .eye {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: black;
+      border-radius: 50%;
+      transition: transform 0.05s linear;
+      z-index: 10001;
+    }
+    .left-eye { top: 68px; left: 48px; }
+    .right-eye { top: 68px; left: 98px; }
+    .eyelid {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #f4f6f8;
+      border-radius: 50%;
+      z-index: 10002;
+      pointer-events: none;
+      opacity: 0;
+    }
+    .eyelid.blink {
+      animation: blink 0.25s ease-in-out;
+    }
+    @keyframes blink {
+      0% { opacity: 0; transform: scaleY(0); }
+      50% { opacity: 1; transform: scaleY(1); }
+      100% { opacity: 0; transform: scaleY(0); }
+    }
+    .eyelid.left { top: 68px; left: 48px; }
+    .eyelid.right { top: 68px; left: 98px; }
   </style>
 </head>
 <body>
-
   <header>
     <h1>Sandeep Nair</h1>
     <p>Transmission Planner | PSS/E | Python Automation</p>
@@ -162,44 +196,49 @@
   </nav>
 
   <div class="container">
-    <section class="hero">
-      <h2>Welcome</h2>
-      <p>
-        I'm Sandeep Nair, a power systems engineer specializing in Siemens PTI PSS/E, Python-based automation, and transmission planning. I build tools and workflows for load flow simulations, contingency analysis, transformer loading, dynamic stability studies, and renewable integration. This site shares my guides and research with the global energy engineering community.
-      </p>
-      <div class="buttons">
-        <a href="psse-guide.html">Read PSS/E Guide</a>
-        <a href="downloads.html">Access Tools</a>
-        <a href="network-viewer.html">View Grid</a>
-        <a href="contingency-explainer.html">Contingency Analysis</a>
-        <a href="transformer-loading.html">Transformer Loading Explained</a>
-        <a href="drive-mapping.html">Drive Mapping</a>
-      </div>
-    </section>
-
-    <section class="donation">
-      <p>
-        ⚡ This site is dedicated to promoting the advancement of grid studies, renewable integration, and power system automation.
-      </p>
-      <p>
-        If you’ve found these tools or guides helpful, consider <strong>supporting the effort</strong> 🙏
-      </p>
-      <a class="coffee" href="https://www.buymeacoffee.com/YOUR_HANDLE" target="_blank">☕ Buy Me a Coffee</a>
-      <a class="gpay" href="https://pay.google.com/gp/p/YOUR_GPAY_LINK" target="_blank">💳 Donate via GPay</a>
-      <p><strong>Or scan the QR code:</strong></p>
-      <img src="Qrcode.png" alt="GPay QR Code">
-    </section>
-
-    <section class="contact-icons">
-      <a href="mailto:sandeep.nair@1898andco.com" title="Email"><i class="fas fa-envelope"></i></a>
-      <a href="https://linkedin.com/in/nairsandeep0808" target="_blank" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
-      <a href="https://github.com/sandeepnair0808" target="_blank" title="GitHub"><i class="fab fa-github"></i></a>
-    </section>
+    <!-- existing site content... -->
   </div>
 
   <footer>
     &copy; 2025 Sandeep Nair · gridbynair.com
   </footer>
 
+  <!-- Mascot with animated eyes -->
+  <div id="mascot-wrapper">
+    <img id="mascot" src="engineer-mascot.png" alt="Engineer Mascot" />
+    <div class="eye left-eye"></div>
+    <div class="eye right-eye"></div>
+    <div class="eyelid left eyelid-left"></div>
+    <div class="eyelid right eyelid-right"></div>
+  </div>
+
+  <script>
+    const eyes = document.querySelectorAll('.eye');
+    document.addEventListener('mousemove', (e) => {
+      eyes.forEach(eye => {
+        const rect = eye.getBoundingClientRect();
+        const eyeX = rect.left + rect.width / 2;
+        const eyeY = rect.top + rect.height / 2;
+        const angle = Math.atan2(e.clientY - eyeY, e.clientX - eyeX);
+        const offset = 4;
+        const x = Math.cos(angle) * offset;
+        const y = Math.sin(angle) * offset;
+        eye.style.transform = `translate(${x}px, ${y}px)`;
+      });
+    });
+
+    // Blinking animation every few seconds
+    const leftLid = document.querySelector('.eyelid-left');
+    const rightLid = document.querySelector('.eyelid-right');
+    function blink() {
+      leftLid.classList.add('blink');
+      rightLid.classList.add('blink');
+      setTimeout(() => {
+        leftLid.classList.remove('blink');
+        rightLid.classList.remove('blink');
+      }, 250);
+    }
+    setInterval(blink, 4000);
+  </script>
 </body>
 </html>
