@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Downloads | Sandeep Nair</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f6f8;
+      color: #333;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: white;
+      padding: 40px 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
+    h1 {
+      color: #0a66c2;
+      text-align: center;
+    }
+    .download-box {
+      background: #eef3f7;
+      padding: 20px;
+      border-left: 5px solid #0a66c2;
+      margin-bottom: 25px;
+    }
+    .download-box h3 {
+      margin-top: 0;
+    }
+    .download-box p {
+      margin-bottom: 10px;
+    }
+    .download-box a {
+      display: inline-block;
+      padding: 10px 15px;
+      background: #0a66c2;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .protected {
+      display: none;
+      margin-top: 10px;
+    }
+    input[type="password"] {
+      padding: 8px;
+      font-size: 1rem;
+      width: 200px;
+      margin-top: 10px;
+    }
+    button {
+      padding: 8px 15px;
+      margin-left: 10px;
+      background-color: #0a66c2;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .back {
+      text-align: center;
+      margin-top: 40px;
+    }
+    .back a {
+      color: #0a66c2;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>📥 Downloads</h1>
+
+    <div class="download-box">
+      <h3>🔓 PSSE Excel-Python Runner Tool</h3>
+      <p>Bundle for automating PSS®E dynamic simulations using Excel (VBA) and Python scripts.</p>
+      <a href="psse_excel_runner.zip" download>Download ZIP</a>
+    </div>
+
+    <div class="download-box">
+      <h3>🔐 PSS/E V35 Script Pack (Protected)</h3>
+      <p>This includes load flow automation, bus voltage extraction, and batch file setup. Hosted on GitHub.</p>
+      <input type="password" id="pw" placeholder="Enter password" />
+      <button onclick="checkPassword()">Unlock</button>
+      <div class="protected" id="protected-link">
+        <a href="https://github.com/your-username/your-repo-name/raw/main/V35F.zip" target="_blank">Download V35F.zip</a>
+      </div>
+    </div>
+
+    <div class="back">
+      <p><a href="index.html">&larr; Back to Home</a></p>
+    </div>
+  </div>
+
+  <script>
+    function checkPassword() {
+      const input = document.getElementById("pw").value;
+      const target = document.getElementById("protected-link");
+      const correct = "psse123"; // Change this password
+
+      if (input === correct) {
+        target.style.display = "block";
+      } else {
+        alert("Incorrect password.");
+      }
+    }
+  </script>
+
+</body>
+</html>
