@@ -1,156 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grid Network Viewer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grid Viewer | .raw File Parser</title>
   <script src="https://unpkg.com/cytoscape@3.24.0/dist/cytoscape.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f6f8; }
-    header { background: #0a66c2; color: white; padding: 15px; text-align: center; }
-    #cy { width: 100%; height: 90vh; display: block; }
-    #controls { padding: 10px; text-align: center; background: #ffffff; box-shadow: 0 1px 5px rgba(0,0,0,0.1); }
-    input[type="file"] { margin: 10px; }
+    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
+    header { background: #0a66c2; color: white; padding: 20px; text-align: center; }
+    .container { max-width: 960px; margin: 20px auto; padding: 20px; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+    #cy { height: 600px; border: 1px solid #ccc; margin-top: 20px; }
+    .file-upload { text-align: center; margin-bottom: 20px; }
+    input[type="file"] { padding: 8px; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Grid Network Viewer</h1>
+    <h1>Grid Viewer: Upload .raw File</h1>
   </header>
-
-  <div id="controls">
-    <input type="file" id="file-input" accept=".json,.raw,.txt">
-    <p>Upload a grid file in JSON or PSS/E .raw format</p>
+  <div class="container">
+    <div class="file-upload">
+      <input type="file" id="fileInput" accept=".raw,.txt">
+    </div>
+    <div id="cy"></div>
   </div>
-
-  <div id="cy"></div>
-
   <script>
-    const voltageColor = voltage => {
+    function voltageColor(voltage) {
       if (voltage >= 500) return '#1B5E20';
       if (voltage >= 230) return '#4CAF50';
       if (voltage >= 138) return '#2196F3';
       if (voltage >= 69)  return '#FFC107';
       return '#FF5722';
-    };
+    }
 
-    document.getElementById('file-input').addEventListener('change', function(evt) {
+    document.getElementById("fileInput").addEventListener("change", function(evt) {
       const file = evt.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function(e) {
         const content = e.target.result;
-        if (file.name.endsWith('.json')) {
-          renderNetwork(JSON.parse(content));
-        } else {
-          const parsed = parseRaw(content);
-          if (parsed) renderNetwork(parsed);
-        }
+        const { buses, branches } = parseRaw(content);
+        renderGraph(buses, branches);
       };
       reader.readAsText(file);
     });
 
     function parseRaw(text) {
       const lines = text.split('\n');
-      const buses = [], branches = [];
+      const buses = [];
+      const branches = [];
       let inBus = false, inBranch = false;
 
       for (let line of lines) {
         line = line.trim();
-        if (!line || line.startsWith('0')) continue;
+        if (line.startsWith("0 / END OF BUS DATA")) inBus = false;
+        else if (line.startsWith("0 / END OF BRANCH DATA")) inBranch = false;
+        else if (line.includes("BUS DATA")) { inBus = true; continue; }
+        else if (line.includes("BRANCH DATA")) { inBranch = true; continue; }
 
-        if (!inBus && line.includes('/ END OF BUS DATA')) inBus = false;
-        else if (!inBranch && line.includes('/ END OF BRANCH DATA')) inBranch = false;
+        if (!line || line.startsWith("0")) continue;
 
-        if (!inBus && line.includes('/ BUS DATA')) {
-          inBus = true;
-          continue;
-        }
-        if (!inBranch && line.includes('/ BRANCH DATA')) {
-          inBranch = true;
-          continue;
-        }
-
-        if (inBus) {
-          const parts = line.split(',');
+        const parts = line.split(',');
+        if (inBus && parts.length >= 9) {
           const id = parseInt(parts[0]);
           const voltage = parseFloat(parts[1]);
-          const name = (parts[8] || '').replace(/'/g, '').trim();
-          if (!isNaN(id) && !isNaN(voltage)) {
-            buses.push({ id, voltage, name });
-          }
-        } else if (inBranch) {
-          const parts = line.split(',');
+          const name = parts[8]?.replace(/'/g, '').trim();
+          buses.push({ id, voltage, name });
+        } else if (inBranch && parts.length >= 2) {
           const from = parseInt(parts[0]);
           const to = parseInt(parts[1]);
-          if (!isNaN(from) && !isNaN(to)) {
-            branches.push({ from, to });
-          }
+          branches.push({ from, to });
         }
       }
-
       return { buses, branches };
     }
 
-    function renderNetwork(data) {
+    function renderGraph(buses, branches) {
       const elements = [];
-      data.buses.forEach(bus => {
+      buses.forEach(bus => {
         elements.push({
-          data: {
-            id: String(bus.id),
-            label: `${bus.name || 'Bus ' + bus.id}\n${bus.voltage} kV`
-          },
+          data: { id: String(bus.id), label: `${bus.name || 'Bus ' + bus.id}\n${bus.voltage}kV` },
           style: {
             'background-color': voltageColor(bus.voltage),
             'label': 'data(label)',
-            'color': '#000',
-            'font-size': '10px',
             'text-valign': 'center',
-            'text-halign': 'center'
+            'text-halign': 'center',
+            'font-size': '10px'
           }
         });
       });
-
-      data.branches.forEach(branch => {
+      branches.forEach(edge => {
         elements.push({
           data: {
-            id: `e${branch.from}-${branch.to}`,
-            source: String(branch.from),
-            target: String(branch.to)
+            id: `e${edge.from}-${edge.to}`,
+            source: String(edge.from),
+            target: String(edge.to)
           },
           style: {
-            'width': 1.5,
-            'line-color': '#999'
+            'line-color': '#aaa',
+            'width': 2
           }
         });
       });
-
       cytoscape({
         container: document.getElementById('cy'),
-        elements: elements,
-        layout: {
-          name: 'breadthfirst',
-          directed: false,
-          padding: 10,
-          spacingFactor: 1.2
-        },
+        elements,
+        layout: { name: 'breadthfirst', spacingFactor: 1.2 },
         style: [
-          {
-            selector: 'node',
-            style: {
-              'width': 30,
-              'height': 30,
-              'shape': 'ellipse'
-            }
-          },
-          {
-            selector: 'edge',
-            style: {
-              'curve-style': 'bezier',
-              'target-arrow-shape': 'none'
-            }
-          }
+          { selector: 'node', style: { width: 30, height: 30, shape: 'ellipse' } },
+          { selector: 'edge', style: { 'curve-style': 'bezier' } }
         ]
       });
     }
