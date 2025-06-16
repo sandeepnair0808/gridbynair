@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Experimental Tools – Solar Farm Designer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f4faff, #ffffff);
+      color: #222;
+    }
+    header {
+      background: #0a66c2;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    main {
+      max-width: 900px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    }
+    h1, h2 {
+      margin-top: 0;
+    }
+    label {
+      display: block;
+      margin: 16px 0 6px;
+      font-weight: 600;
+    }
+    input {
+      padding: 10px;
+      width: 100%;
+      max-width: 300px;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 24px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      background-color: #0a66c2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background-color: #004a99;
+    }
+    .output, .schematic {
+      margin-top: 30px;
+      background: #f3f8ff;
+      padding: 20px;
+      border-radius: 10px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    canvas {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      background: #fff;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚡ Solar Farm Collector Designer (Experimental)</h1>
+    <p>Auto-generate inverter collector system for SC and reactive studies</p>
+  </header>
+  <main>
+    <h2>Design Parameters</h2>
+    <label for="total">Total Number of Inverters</label>
+    <input type="number" id="total" placeholder="e.g., 64" />
+
+    <label for="perFeeder">Inverters per Feeder</label>
+    <input type="number" id="perFeeder" placeholder="e.g., 8" />
+
+    <label for="capacitor">Capacitor Bank (kVAR) per Feeder</label>
+    <input type="number" id="capacitor" placeholder="e.g., 500" />
+
+    <label for="voltage">Feeder Voltage Level (kV)</label>
+    <input type="number" id="voltage" placeholder="e.g., 33" />
+
+    <label for="impedance">Feeder Impedance (Z pu)</label>
+    <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01" />
+
+    <button onclick="generateCollector()">Generate Collector Layout</button>
+    <button onclick="exportCSV()">Export as CSV</button>
+
+    <div class="output" id="collectorOutput">Awaiting input...</div>
+    <canvas id="schematicCanvas" width="800" height="600"></canvas>
+  </main>
+
+  <script>
+    let parsedLayout = [];
+
+    function generateCollector() {
+      const total = parseInt(document.getElementById('total').value);
+      const perFeeder = parseInt(document.getElementById('perFeeder').value);
+      const capacitor = parseInt(document.getElementById('capacitor').value);
+      const voltage = parseFloat(document.getElementById('voltage').value);
+      const impedance = parseFloat(document.getElementById('impedance').value);
+      const output = document.getElementById('collectorOutput');
+      const canvas = document.getElementById('schematicCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!total || !perFeeder || total <= 0 || perFeeder <= 0 || total < perFeeder) {
+        output.textContent = '⚠️ Please enter valid inverter numbers.';
+        return;
+      }
+
+      const feeders = Math.ceil(total / perFeeder);
+      let layout = `🌞 Solar Farm Layout\n-----------------------\nTotal Inverters: ${total}\nInverters/Feeder: ${perFeeder}\nTotal Feeders: ${feeders}\nFeeder Voltage: ${voltage || 'N/A'} kV\nFeeder Impedance: ${impedance || 'N/A'} pu\nCapacitor/Feeder: ${capacitor || 0} kVAR`;
+      layout += '\n\n📐 Feeder Configuration:';
+
+      parsedLayout = [];
+      let inverterIndex = 1;
+      for (let f = 1; f <= feeders; f++) {
+        layout += `\n\nFeeder ${f} → Main Collector Bus`;
+        for (let i = 0; i < perFeeder && inverterIndex <= total; i++) {
+          layout += `\n  ↳ Inverter ${inverterIndex}`;
+          parsedLayout.push({ feeder: f, inverter: inverterIndex, capacitor: (i === 0 && capacitor) ? capacitor : 0, voltage, impedance });
+          inverterIndex++;
+        }
+      }
+
+      layout += '\n\n✅ Ready for SC/Reactive studies export.';
+      output.textContent = layout;
+      drawSchematic(parsedLayout);
+    }
+
+    function drawSchematic(layout) {
+      const canvas = document.getElementById('schematicCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const feeders = [...new Set(layout.map(x => x.feeder))];
+      const spacingX = 120;
+      const spacingY = 60;
+
+      feeders.forEach((feeder, i) => {
+        const x = 100 + i * spacingX;
+        ctx.fillStyle = '#0a66c2';
+        ctx.fillRect(x, 20, 6, 30);
+        ctx.fillText(`F${feeder}`, x - 5, 15);
+
+        const feederInverters = layout.filter(x => x.feeder === feeder);
+        feederInverters.forEach((inv, j) => {
+          const y = 70 + j * spacingY;
+          ctx.beginPath();
+          ctx.moveTo(x + 3, 50);
+          ctx.lineTo(x + 3, y);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(x + 3, y, 10, 0, 2 * Math.PI);
+          ctx.fillStyle = '#34a853';
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#000';
+          ctx.fillText(`I${inv.inverter}`, x - 10, y + 25);
+          if (inv.capacitor) {
+            ctx.fillStyle = '#ff9800';
+            ctx.fillText(`+${inv.capacitor}kVAR`, x - 20, y + 40);
+          }
+        });
+      });
+    }
+
+    function exportCSV() {
+      if (!parsedLayout.length) return;
+      const header = 'Feeder,Inverter,Capacitor_kVAR,Voltage_kV,Impedance_pu\n';
+      const rows = parsedLayout.map(r => `${r.feeder},${r.inverter},${r.capacitor},${r.voltage},${r.impedance}`).join('\n');
+      const blob = new Blob([header + rows], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'solar_collector_layout.csv';
+      a.click();
+    }
+  </script>
+</body>
+</html>
