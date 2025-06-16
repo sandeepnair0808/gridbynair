@@ -5,85 +5,154 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Short Circuit Calculator | Sandeep Nair</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">// Update diagram based on fault type
+      const diagramImg = document.getElementById('diagramImg');
+      const faultSelect = document.getElementById('faultType');
+      const diagramMap = {
+        '3ph': 'https://www.electrical4u.com/images/2015/07/symmetrical-components-3ph-fault.png',
+        'lg': 'https://www.electrical4u.com/images/2015/07/symmetrical-components-lg-fault.png',
+        'll': 'https://www.electrical4u.com/images/2015/07/symmetrical-components-ll-fault.png'
+      };
+      faultSelect.addEventListener('change', function () {
+        diagramImg.src = diagramMap[this.value];
+        diagramImg.alt = `${this.options[this.selectedIndex].text} Diagram`;
+      });
+    function toggleZoom(img) {
+  img.style.transform = img.style.transform === 'scale(2)' ? 'scale(1)' : 'scale(2)';
+  img.style.cursor = img.style.transform === 'scale(2)' ? 'zoom-out' : 'zoom-in';
+}
+</script>
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background: #f9fbfd;
+      background: linear-gradient(120deg, #f9fbfd 0%, #eef3f8 100%);
       padding: 40px;
       color: #333;
     }
     .calculator {
-      max-width: 400px;
+      max-width: 480px;
       margin: auto;
-      padding: 24px;
+      padding: 30px;
       background: white;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-      animation: pulseGlow 1.5s infinite alternate;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+      animation: fadeSlide 0.7s ease-out;
     }
     h2 {
       color: #d32f2f;
       margin-top: 0;
+      text-align: center;
     }
     input, select {
       width: 100%;
-      padding: 10px;
-      margin: 8px 0 16px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      padding: 12px;
+      margin: 10px 0 18px;
+      border-radius: 8px;
+      border: 1px solid #bbb;
+      font-size: 1rem;
     }
     button {
       width: 100%;
-      background: #0a66c2;
+      background: linear-gradient(to right, #0a66c2, #004a99);
       color: white;
       padding: 12px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-weight: bold;
+      font-size: 1rem;
       cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    button:hover {
+      transform: scale(1.03);
     }
     #scResult {
-      margin-top: 16px;
+      margin-top: 20px;
       font-weight: 600;
       color: #0a66c2;
+      font-size: 1rem;
     }
     canvas {
-      margin-top: 20px;
+      margin-top: 30px;
       max-width: 100%;
-      height: 180px;
+      height: 200px;
     }
-    @keyframes pulseGlow {
-      from { box-shadow: 0 0 10px rgba(211, 47, 47, 0.3); }
-      to { box-shadow: 0 0 30px rgba(211, 47, 47, 0.6); }
+    .notes {
+      font-size: 0.85rem;
+      margin-top: 16px;
+      color: #555;
+      background: #f1f3f5;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
   <div class="calculator">
     <h2>⚡ Short Circuit Calculator</h2>
+    <label>Fault Type:</label>
+    <select id="faultType">
+      <option value="3ph">3-Phase</option>
+      <option value="lg">Line-to-Ground (LG)</option>
+      <option value="ll">Line-to-Line (LL)</option>
+    </select>
+
     <label>Fault Current (kA):</label>
     <input id="faultCurrent" type="number" placeholder="e.g. 25" />
+
     <label>Impedance (Z%):</label>
     <input id="impedance" type="number" placeholder="e.g. 7.5" />
+
     <label>Base Voltage (kV):</label>
     <input id="voltage" type="number" placeholder="e.g. 132" />
+
+    <label>X/R Ratio (optional):</label>
+    <input id="xrRatio" type="number" placeholder="e.g. 10" />
+
+    <label>System Frequency (Hz):</label>
+    <input id="frequency" type="number" placeholder="e.g. 50 or 60" value="50" />
+
     <button onclick="calculateSC()">⚙️ Compute</button>
+
     <div id="scResult"></div>
     <canvas id="scChart"></canvas>
+    <div class="notes">
+      📘 <b>Note:</b> MVA = (Fault Current * 100) / Z% | kVA = √3 × V × I (or V × I for LG/LL) | Per-unit = kVA × Z% / 1000<br>
+      🔍 X/R Ratio is used to estimate DC offset and peak asymmetrical current (for AC+DC peak estimates)
+    </div>
   </div>
+
   <script>
     function calculateSC() {
+      const faultType = document.getElementById('faultType').value;
       const I = parseFloat(document.getElementById('faultCurrent').value);
       const Z = parseFloat(document.getElementById('impedance').value);
       const V = parseFloat(document.getElementById('voltage').value);
+      const F = parseFloat(document.getElementById('frequency').value);
+      const XR = parseFloat(document.getElementById('xrRatio').value);
       const resultDiv = document.getElementById('scResult');
 
       if (!isNaN(I) && !isNaN(Z) && !isNaN(V) && Z !== 0) {
+        let kva;
+        if (faultType === '3ph') {
+          kva = I * Math.sqrt(3) * V;
+        } else {
+          kva = I * V; // single-phase equivalent for LG or LL faults
+        }
         const mva = (I * 100) / Z;
-        const kva = I * Math.sqrt(3) * V;
         const pu = (kva / 1000) * (Z / 100);
-        resultDiv.innerHTML = `Calculated MVA: <b>${mva.toFixed(2)}</b><br>3-phase S.C Power: <b>${kva.toFixed(2)} kVA</b><br>Per-unit Fault Level: <b>${pu.toFixed(3)} pu</b>`;
+
+        let asym = '';
+        if (!isNaN(XR) && XR > 0) {
+          const asymPeak = I * Math.sqrt(2) * (1 + Math.exp(-Math.PI * F / XR));
+          asym = `<br>Estimated Peak Asymmetrical Current: <b>${asymPeak.toFixed(2)} kA</b>`;
+        }
+
+        resultDiv.innerHTML = `Fault Type: <b>${faultType.toUpperCase()}</b><br>Calculated MVA: <b>${mva.toFixed(2)}</b><br>S.C Power: <b>${kva.toFixed(2)} kVA</b><br>Per-unit Fault Level: <b>${pu.toFixed(3)} pu</b>${asym}`;
 
         const ctx = document.getElementById('scChart').getContext('2d');
         if (window.scChartInstance) window.scChartInstance.destroy();
@@ -110,5 +179,25 @@
       }
     }
   </script>
+<div style="max-width: 640px; margin: 40px auto; background: #ffffff; padding: 20px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.1);">
+  <h3 style="text-align:center; color:#0a66c2;">🧠 Visual SC Impedance Diagrams</h3>
+  <div id="diagramContainer" style="display: flex; flex-direction: column; gap: 20px;">
+  <img id="diagramImg" src="https://www.electrical4u.com/images/2015/07/symmetrical-components-3ph-fault.png" alt="3-Phase Fault Diagram" style="width:100%; border-radius: 8px; transition: transform 0.3s ease-in-out; cursor: zoom-in;" onclick="toggleZoom(this)" />
+</div>
+  <p style="font-size: 0.9rem; color: #555; margin-top: 16px;"><strong>Sequence Components:</strong> R1 (Positive), R2 (Negative), R0 (Zero) — essential for protection studies.<br><br>These diagrams illustrate the positive, negative, and zero sequence networks involved during short circuit faults. They are key for understanding protection coordination and system stability analysis.</p>
+</div>
+<script>
+  const diagramImg = document.getElementById('diagramImg');
+  const faultSelect = document.getElementById('faultType');
+  const diagramMap = {
+    '3ph': 'https://www.electrical4u.com/images/2015/07/symmetrical-components-3ph-fault.png',
+    'lg': 'https://www.electrical4u.com/images/2015/07/symmetrical-components-lg-fault.png',
+    'll': 'https://www.electrical4u.com/images/2015/07/symmetrical-components-ll-fault.png'
+  };
+  faultSelect.addEventListener('change', function () {
+    diagramImg.src = diagramMap[this.value];
+    diagramImg.alt = `${this.options[this.selectedIndex].text} Diagram`;
+  });
+</script>
 </body>
 </html>
