@@ -105,19 +105,19 @@
     }
 
     .left-eye {
-      top: 50px;
-      left: 60px;
+      top: 61px;
+      left: 47px;
     }
 
     .right-eye {
-      top: 50px;
-      left: 78px;
+      top: 61px;
+      left: 85px;
     }
 
     .eyelid {
       position: absolute;
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       background: #f4f6f8;
       border-radius: 50%;
       z-index: 10002;
@@ -135,14 +135,33 @@
       100% { opacity: 0; transform: scaleY(0); }
     }
 
+    @keyframes explode {
+      0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.8) rotate(180deg);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(0) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    #mascot.explode {
+      animation: explode 0.8s ease-out forwards;
+    }
+
     .eyelid.left {
-      top: 50px;
-      left: 60px;
+      top: 61px;
+      left: 47px;
     }
 
     .eyelid.right {
-      top: 50px;
-      left: 78px;
+      top: 61px;
+      left: 85px;
     }
   </style>
 </head>
@@ -196,21 +215,23 @@
 
   <script>
     const eyes = document.querySelectorAll('.eye');
+    const leftLid = document.querySelector('.eyelid-left');
+    const rightLid = document.querySelector('.eyelid-right');
+    const mascot = document.getElementById('mascot');
+
     document.addEventListener('mousemove', (e) => {
       eyes.forEach(eye => {
         const rect = eye.getBoundingClientRect();
         const eyeX = rect.left + rect.width / 2;
         const eyeY = rect.top + rect.height / 2;
         const angle = Math.atan2(e.clientY - eyeY, e.clientX - eyeX);
-        const offset = 8;
+        const offset = 4;
         const x = Math.cos(angle) * offset;
         const y = Math.sin(angle) * offset;
         eye.style.transform = `translate(${x}px, ${y}px)`;
       });
     });
 
-    const leftLid = document.querySelector('.eyelid-left');
-    const rightLid = document.querySelector('.eyelid-right');
     function blink() {
       leftLid.classList.add('blink');
       rightLid.classList.add('blink');
@@ -219,8 +240,14 @@
         rightLid.classList.remove('blink');
       }, 1000);
     }
-    setInterval(blink, 1500);
-  </script>
+    setInterval(blink, 4000);
 
+    mascot.addEventListener('click', () => {
+      mascot.classList.add('explode');
+      setTimeout(() => {
+        mascot.style.display = 'none';
+      }, 800);
+    });
+  </script>
 </body>
 </html>
