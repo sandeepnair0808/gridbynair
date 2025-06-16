@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sandeep Nair | Power Systems Tools & PSS/E Automation</title>
-
-  <!-- SEO Meta -->
   <meta name="description" content="Sandeep Nair – Siemens PTI PSS/E expert in load flow, grid modeling, Python automation, and transmission planning tools.">
   <meta name="keywords" content="Sandeep Nair, PSSE, PSS/E, Siemens PTI, power system simulation, contingency analysis, load flow tools, dynamic studies, short circuit calculator, voltage profile explorer, network model viewer, power system engineer, grid studies, transmission planning, python automation">
   <meta name="author" content="Sandeep Nair">
@@ -20,7 +18,6 @@
   <meta name="twitter:title" content="Sandeep Nair – Grid Modeling & Automation Tools" />
   <meta name="twitter:description" content="Access load flow simulators, PSSE scripting tutorials, short circuit tools, and automation workflows by Sandeep Nair." />
   <meta name="twitter:image" content="https://gridbynair.com/og-preview.jpg" />
-  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -111,102 +108,58 @@
       font-size: 0.9rem;
       z-index: 10000;
     }
-    .donation {
+    /* QR Donation Popup */
+    #qr-popup {
+      display: none;
       position: fixed;
-      bottom: 160px;
+      bottom: 100px;
       right: 20px;
       background: white;
-      padding: 10px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      z-index: 9998;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 10001;
+      max-width: 260px;
+      text-align: center;
     }
-    .donation a {
-      display: block;
-      margin: 4px 0;
+    #qr-popup img {
+      width: 200px;
+      height: 200px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    #qr-popup h4 {
+      margin-top: 0;
+      font-size: 1rem;
+      color: #0a66c2;
+    }
+    #qr-popup p {
+      font-size: 0.85rem;
+      color: #444;
+      margin-top: 10px;
+    }
+    #qr-popup button {
+      margin-top: 10px;
+      background: #0a66c2;
+      color: white;
+      border: none;
       padding: 6px 12px;
       border-radius: 6px;
-      text-align: center;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .donation .gpay { background-color: #4285f4; color: white; }
-    #speech-bubble {
-      position: fixed;
-      bottom: 350px;
-      right: 30px;
-      background: #fff;
-      color: #333;
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-size: 0.9rem;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-      display: none;
-      z-index: 10001;
-    }
-    #mascot-wrapper {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 160px;
-      z-index: 9999;
-    }
-    #mascot {
-      width: 100%;
-      display: block;
       cursor: pointer;
     }
-    .eye, .eyelid {
-      pointer-events: auto;
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-    .eye {
-      background: black;
-      z-index: 10001;
-    }
-    .left-eye { top: 50px; left: 60px; }
-    .right-eye { top: 50px; left: 78px; }
-    .eyelid {
-      background: #f9fbfd;
-      z-index: 10002;
-      opacity: 0;
-    }
-    .eyelid.left { top: 50px; left: 60px; }
-    .eyelid.right { top: 50px; left: 78px; }
-    .eyelid.blink {
-      animation: blink 1s ease-in-out;
-    }
-    @keyframes blink {
-      0% { opacity: 0; transform: scaleY(0); }
-      50% { opacity: 1; transform: scaleY(1); }
-      100% { opacity: 0; transform: scaleY(0); }
-    }
-    @keyframes explode {
-      0% { transform: scale(1) rotate(0deg); opacity: 1; }
-      50% { transform: scale(1.8) rotate(180deg); opacity: 0.5; }
-      100% { transform: scale(0) rotate(360deg); opacity: 0; }
-    }
-    #mascot.explode { animation: explode 0.8s ease-out forwards; }
-    #mascot-menu {
-      display: none;
+    #gpay-button {
       position: fixed;
-      bottom: 220px;
-      right: 30px;
-      background: white;
-      padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      z-index: 10000;
-    }
-    #mascot-menu a {
-      display: block;
-      margin: 5px 0;
-      text-decoration: none;
-      color: #0a66c2;
+      bottom: 120px;
+      right: 20px;
+      background: #34a853;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 30px;
       font-weight: bold;
+      font-size: 0.9rem;
+      z-index: 10000;
+      border: none;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -241,154 +194,64 @@
     </section>
   </div>
   <footer>
-    &copy; 2025 Sandeep Nair · gridbynair.com
+    &copy; 2025 Sandeep Nair · gridbynair.com<br>
+    💡 Donations help build free tools for power system engineers worldwide.
   </footer>
+
+  <!-- Floating Contact -->
   <a href="mailto:sandeep.nair@1898andco.com" class="floating-contact">✉️ Contact</a>
-  <div class="donation">
-   <a class="gpay" href="upi://pay?pa=8669866140@oksbi&pn=Sandeep%20Nair&cu=INR">💳 Donate via GPay</a>
+
+  <!-- GPay Button -->
+  <button id="gpay-button">💳 Pay via GPay (Popup)</button>
+
+  <!-- QR Code Fallback -->
+  <div id="qr-popup">
+    <h4>Scan to Donate</h4>
+    <img src="gpay-qr.jpg" alt="GPay QR Code">
+    <p>Your donation helps keep GridByNair tools free and evolving for the power systems community.</p>
+    <button onclick="document.getElementById('qr-popup').style.display='none'">Close</button>
   </div>
-  <div id="speech-bubble">Need help? Click me 💥</div>
-  <div id="mascot-wrapper">
-    <img id="mascot" src="/mnt/data/79e0ce2c-6ea0-41b9-a3a9-634cd58ab0e7.png" alt="Villain Mascot" />
-    <div class="eye left-eye"></div>
-    <div class="eye right-eye"></div>
-    <div class="eyelid left eyelid-left"></div>
-    <div class="eyelid right eyelid-right"></div>
-  </div>
-  <div id="mascot-menu">
-    <a href="loadflow-converter.html">🔁 Load Flow Converter</a>
-    <a href="short-circuit-tool.html">⚡ Short Circuit Tool</a>
-    <a href="voltage-profile.html">📊 Voltage Profile Explorer</a>
-  </div>
+
+  <!-- Script for Payment Request + Fallback -->
   <script>
-    const eyes = document.querySelectorAll('.eye');
-    const leftLid = document.querySelector('.eyelid-left');
-    const rightLid = document.querySelector('.eyelid-right');
-    const mascot = document.getElementById('mascot');
-    const speechBubble = document.getElementById('speech-bubble');
-    const mascotMenu = document.getElementById('mascot-menu');
+    document.getElementById('gpay-button').addEventListener('click', async () => {
+      try {
+        const supportedInstruments = [{
+          supportedMethods: 'https://tez.google.com/pay',
+          data: {
+            pa: '8669866140@oksbi',
+            pn: 'Sandeep Nair',
+            tr: 'GRIDBYNAIR001',
+            url: 'https://gridbynair.com',
+            mc: '0000',
+            tn: 'Support Voltage Tools by Sandeep',
+            invoiceNo: 'VOLT001',
+            invoiceDate: new Date().toISOString(),
+            gstIn: 'NA'
+          }
+        }];
 
-    let clickCount = 0;
-    const tips = [
-      "Need to convert a raw case? Try the Load Flow Converter!",
-      "Use the Short Circuit Calculator for fast SC analysis.",
-      "Automate base case comparisons with Python scripts!",
-      "Check out Voltage Profile Explorer for visual insights.",
-      "Drive Mapping can help you locate your simulation files faster."
-    ];
-    let tipIndex = 0;
+        const details = {
+          total: {
+            label: 'Donation',
+            amount: { currency: 'INR', value: '500.00' }
+          }
+        };
 
-    document.addEventListener('mousemove', (e) => {
-      eyes.forEach(eye => {
-        const rect = eye.getBoundingClientRect();
-        const eyeX = rect.left + rect.width / 2;
-        const eyeY = rect.top + rect.height / 2;
-        const angle = Math.atan2(e.clientY - eyeY, e.clientX - eyeX);
-        const offset = 4;
-        const x = Math.cos(angle) * offset;
-        const y = Math.sin(angle) * offset;
-        eye.style.transform = `translate(${x}px, ${y}px)`;
-      });
-    });
+        const request = new PaymentRequest(supportedInstruments, details);
 
-    function blink() {
-      leftLid.classList.add('blink');
-      rightLid.classList.add('blink');
-      setTimeout(() => {
-        leftLid.classList.remove('blink');
-        rightLid.classList.remove('blink');
-      }, 1000);
-    }
-    setInterval(blink, 4000);
-
-    function showNextTip() {
-      speechBubble.textContent = tips[tipIndex];
-      speechBubble.style.display = 'block';
-      tipIndex = (tipIndex + 1) % tips.length;
-    }
-    setInterval(showNextTip, 15000);
-
-    eyes.forEach(eye => {
-      eye.addEventListener('mouseenter', () => {
-        speechBubble.style.display = 'block';
-        speakText("Hi! I can help you with PSSE scripts and power system tools.");
-      });
-      eye.addEventListener('mouseleave', () => {
-        speechBubble.style.display = 'none';
-      });
-    });
-
-    mascot.addEventListener('click', () => {
-      clickCount++;
-      mascot.classList.add('explode');
-      speechBubble.style.display = 'none';
-      setTimeout(() => {
-        mascot.style.display = 'none';
-      }, 800);
-      setTimeout(() => {
-        mascot.style.display = 'block';
-        mascot.classList.remove('explode');
-      }, 5000);
-      mascotMenu.style.display = mascotMenu.style.display === 'block' ? 'none' : 'block';
-      if (clickCount === 5) {
-        alert("🎉 You've unlocked an experimental tool!");
-        window.location.href = 'experimental-tools.html';
+        if (await request.canMakePayment()) {
+          const response = await request.show();
+          await response.complete('success');
+          alert('✅ Thank you for your support!');
+        } else {
+          document.getElementById('qr-popup').style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Payment Request Error:', err);
+        document.getElementById('qr-popup').style.display = 'block';
       }
     });
-
-    function speakText(text) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.pitch = 1;
-      utterance.rate = 1;
-      speechSynthesis.speak(utterance);
-    }
-
-    const hour = new Date().getHours();
-    if (hour >= 19 || hour < 6) {
-      mascot.src = 'villain.png';
-    }
   </script>
-  <button id="gpay-button" style="position: fixed; bottom: 120px; right: 20px; background: #34a853; color: white; padding: 10px 16px; border-radius: 30px; font-weight: bold; font-size: 0.9rem; z-index: 10000; border: none; cursor: pointer;">
-  💳 Pay via GPay (Popup)
-</button>
-
-<script>
-  document.getElementById('gpay-button').addEventListener('click', async () => {
-    try {
-      const supportedInstruments = [{
-        supportedMethods: 'https://tez.google.com/pay',
-        data: {
-          pa: '8669866140@oksbi',
-          pn: 'Sandeep Nair',
-          tr: 'GRIDBYNAIR001',
-          url: 'https://gridbynair.com',
-          mc: '0000',
-          tn: 'Support Voltage Tools by Sandeep',
-          invoiceNo: 'VOLT001',
-          invoiceDate: new Date().toISOString(),
-          gstIn: 'NA'
-        }
-      }];
-
-      const details = {
-        total: {
-          label: 'Donation',
-          amount: { currency: 'INR', value: '50.00' }
-        }
-      };
-
-      const request = new PaymentRequest(supportedInstruments, details);
-
-      if (await request.canMakePayment()) {
-        const response = await request.show();
-        await response.complete('success');
-        alert('✅ Thank you for your support!');
-      } else {
-        alert('Google Pay not available on this device.');
-      }
-    } catch (err) {
-      console.error('Payment Request Error:', err);
-      alert('Payment was cancelled or failed.');
-    }
-  });
-</script>
+</body>
+</html>
