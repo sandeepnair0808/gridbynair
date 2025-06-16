@@ -54,18 +54,25 @@
     function parseRaw(text) {
       const lines = text.split('\n');
       const buses = [], branches = [];
-      let section = null;
+      let inBus = false, inBranch = false;
 
       for (let line of lines) {
         line = line.trim();
-        if (line.match(/^0\s*\/\s*END OF BUS DATA/i)) section = null;
-        else if (line.match(/^0\s*\/\s*END OF BRANCH DATA/i)) section = null;
-        else if (line.match(/^0\s*\/\s*BEGIN LOAD DATA/i)) section = null;
+        if (!line || line.startsWith('0')) continue;
 
-        else if (line.match(/^0\s*\/\s*BUS DATA/i)) section = 'BUS';
-        else if (line.match(/^0\s*\/\s*BRANCH DATA/i)) section = 'BRANCH';
+        if (!inBus && line.includes('/ END OF BUS DATA')) inBus = false;
+        else if (!inBranch && line.includes('/ END OF BRANCH DATA')) inBranch = false;
 
-        if (section === 'BUS' && line && !line.startsWith('0')) {
+        if (!inBus && line.includes('/ BUS DATA')) {
+          inBus = true;
+          continue;
+        }
+        if (!inBranch && line.includes('/ BRANCH DATA')) {
+          inBranch = true;
+          continue;
+        }
+
+        if (inBus) {
           const parts = line.split(',');
           const id = parseInt(parts[0]);
           const voltage = parseFloat(parts[1]);
@@ -73,9 +80,7 @@
           if (!isNaN(id) && !isNaN(voltage)) {
             buses.push({ id, voltage, name });
           }
-        }
-
-        if (section === 'BRANCH' && line && !line.startsWith('0')) {
+        } else if (inBranch) {
           const parts = line.split(',');
           const from = parseInt(parts[0]);
           const to = parseInt(parts[1]);
