@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>N-1, N-1-1, and N-2 Contingencies Explained</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f6f8; color: #333; }
+    header { background: #0a66c2; color: white; padding: 20px; text-align: center; }
+    .container { max-width: 960px; margin: 40px auto; padding: 20px; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+    h2 { color: #0a66c2; }
+    .section { margin-bottom: 30px; }
+    .section p { margin-top: 10px; }
+    .example-box {
+      background: #eef4fc;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin-top: 10px;
+    }
+    .animation-frame {
+      margin-top: 20px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      background: #fafafa;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>N-1, N-1-1, and N-2 Contingency Analysis</h1>
+  </header>
+
+  <div class="container">
+    <div class="section">
+      <h2>🔹 What is Contingency Analysis?</h2>
+      <p>Contingency analysis is a critical part of power system planning and operations. It simulates the impact of potential equipment failures (like lines, transformers, or generators) to ensure the grid remains stable and secure under realistic fault conditions.</p>
+    </div>
+
+    <div class="section">
+      <h2>✅ N-1 Contingency</h2>
+      <p>This simulates the loss of any one single element (line, transformer, etc.). The system must still operate securely without violating thermal or voltage limits.</p>
+      <div class="example-box">
+        <strong>Example:</strong> If there are 100 lines, 100 contingency cases are evaluated where each line is taken out one at a time.
+      </div>
+      <div class="animation-frame">
+        [GRID]
+        ──┐      ┌──┐
+          │─────│L1│────▶ Line L1 failure
+        ──┘      └──┘
+        → Check voltage, loading on neighboring elements
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔁 N-1-1 Contingency</h2>
+      <p>This simulates the loss of one element, allows the system to re-dispatch or stabilize, and then simulates the loss of a second element. More realistic for operational security planning.</p>
+      <div class="example-box">
+        <strong>Example:</strong> Lose line L1, wait for reconfiguration, then lose transformer T2.
+      </div>
+      <div class="animation-frame">
+        Step 1: Line L1 fails → system redispatches
+        Step 2: Transformer T2 fails → validate all voltages and flows again
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>⚠️ N-2 Contingency</h2>
+      <p>This assumes any two elements can fail simultaneously — more severe and used for high-security planning or post-blackout studies. Typically modeled for critical corridors.</p>
+      <div class="example-box">
+        <strong>Example:</strong> Evaluate failure of Line L1 and Transformer T3 at the same time.
+      </div>
+      <div class="animation-frame">
+        Simulate: Outage{L1, T3} → observe overloads or islanding
+        → Useful for understanding worst-case resilience
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📌 Summary</h2>
+      <ul>
+        <li><strong>N-1</strong>: One failure, no operator action between</li>
+        <li><strong>N-1-1</strong>: Two sequential failures with intermediate recovery</li>
+        <li><strong>N-2</strong>: Two simultaneous failures — worst-case</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
