@@ -23,15 +23,31 @@
     svg line {
       stroke: #333;
       stroke-width: 4;
+      transition: stroke 0.5s;
     }
     .fail {
       stroke: red;
       stroke-dasharray: 6;
       animation: blink 1s infinite;
     }
+    .restore {
+      stroke: green;
+      stroke-width: 4;
+    }
     @keyframes blink {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.2; }
+    }
+    .control-btn {
+      background: #0a66c2;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px auto;
+      display: block;
     }
   </style>
 </head>
@@ -53,14 +69,14 @@
         <strong>Example:</strong> If there are 100 lines, 100 contingency cases are evaluated where each line is taken out one at a time.
       </div>
       <div class="svg-anim">
-        <svg width="300" height="150">
+        <svg width="300" height="150" id="n1svg">
           <circle cx="50" cy="75" r="10" fill="#2196f3" />
           <circle cx="150" cy="75" r="10" fill="#2196f3" />
           <circle cx="250" cy="75" r="10" fill="#2196f3" />
-          <line x1="50" y1="75" x2="150" y2="75" class="fail" />
+          <line id="n1line1" x1="50" y1="75" x2="150" y2="75" />
           <line x1="150" y1="75" x2="250" y2="75" />
         </svg>
-        <p><em>Line between Node 1 and Node 2 fails (blinking red)</em></p>
+        <button class="control-btn" onclick="document.getElementById('n1line1').classList.toggle('fail')">Toggle Failure</button>
       </div>
     </div>
 
@@ -71,14 +87,29 @@
         <strong>Example:</strong> Lose line L1, wait for reconfiguration, then lose transformer T2.
       </div>
       <div class="svg-anim">
-        <svg width="300" height="150">
+        <svg width="300" height="150" id="n11svg">
           <circle cx="50" cy="75" r="10" fill="#4caf50" />
           <circle cx="150" cy="75" r="10" fill="#4caf50" />
           <circle cx="250" cy="75" r="10" fill="#4caf50" />
-          <line x1="50" y1="75" x2="150" y2="75" class="fail" />
-          <line x1="150" y1="75" x2="250" y2="75" class="fail" />
+          <line id="n11line1" x1="50" y1="75" x2="150" y2="75" />
+          <line id="n11line2" x1="150" y1="75" x2="250" y2="75" />
         </svg>
-        <p><em>Sequential failures: First L1, then T2</em></p>
+        <button class="control-btn" onclick="n11Step()">Step Failure</button>
+        <script>
+          let n11step = 0;
+          function n11Step() {
+            if (n11step === 0) {
+              document.getElementById('n11line1').classList.add('fail');
+            } else if (n11step === 1) {
+              document.getElementById('n11line2').classList.add('fail');
+            } else {
+              document.getElementById('n11line1').classList.remove('fail');
+              document.getElementById('n11line2').classList.remove('fail');
+              n11step = -1;
+            }
+            n11step++;
+          }
+        </script>
       </div>
     </div>
 
@@ -89,14 +120,20 @@
         <strong>Example:</strong> Evaluate failure of Line L1 and Transformer T3 at the same time.
       </div>
       <div class="svg-anim">
-        <svg width="300" height="150">
+        <svg width="300" height="150" id="n2svg">
           <circle cx="50" cy="50" r="10" fill="#ff9800" />
           <circle cx="150" cy="50" r="10" fill="#ff9800" />
           <circle cx="250" cy="50" r="10" fill="#ff9800" />
-          <line x1="50" y1="50" x2="150" y2="50" class="fail" />
-          <line x1="150" y1="50" x2="250" y2="50" class="fail" />
+          <line id="n2line1" x1="50" y1="50" x2="150" y2="50" />
+          <line id="n2line2" x1="150" y1="50" x2="250" y2="50" />
         </svg>
-        <p><em>Simultaneous failures of two critical components</em></p>
+        <button class="control-btn" onclick="n2Fail()">Simulate N-2 Outage</button>
+        <script>
+          function n2Fail() {
+            document.getElementById('n2line1').classList.toggle('fail');
+            document.getElementById('n2line2').classList.toggle('fail');
+          }
+        </script>
       </div>
     </div>
 
