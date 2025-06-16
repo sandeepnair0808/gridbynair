@@ -348,3 +348,47 @@
       mascot.src = 'villain.png';
     }
   </script>
+  <button id="gpay-button" style="position: fixed; bottom: 120px; right: 20px; background: #34a853; color: white; padding: 10px 16px; border-radius: 30px; font-weight: bold; font-size: 0.9rem; z-index: 10000; border: none; cursor: pointer;">
+  💳 Pay via GPay (Popup)
+</button>
+
+<script>
+  document.getElementById('gpay-button').addEventListener('click', async () => {
+    try {
+      const supportedInstruments = [{
+        supportedMethods: 'https://tez.google.com/pay',
+        data: {
+          pa: '8669866140@oksbi',
+          pn: 'Sandeep Nair',
+          tr: 'GRIDBYNAIR001',
+          url: 'https://gridbynair.com',
+          mc: '0000',
+          tn: 'Support Voltage Tools by Sandeep',
+          invoiceNo: 'VOLT001',
+          invoiceDate: new Date().toISOString(),
+          gstIn: 'NA'
+        }
+      }];
+
+      const details = {
+        total: {
+          label: 'Donation',
+          amount: { currency: 'INR', value: '50.00' }
+        }
+      };
+
+      const request = new PaymentRequest(supportedInstruments, details);
+
+      if (await request.canMakePayment()) {
+        const response = await request.show();
+        await response.complete('success');
+        alert('✅ Thank you for your support!');
+      } else {
+        alert('Google Pay not available on this device.');
+      }
+    } catch (err) {
+      console.error('Payment Request Error:', err);
+      alert('Payment was cancelled or failed.');
+    }
+  });
+</script>
