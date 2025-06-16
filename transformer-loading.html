@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transformer MVA vs Current Loading</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; color: #333; line-height: 1.6; }
+    header { background: #0a66c2; color: white; padding: 20px; text-align: center; }
+    .container { max-width: 960px; margin: 40px auto; padding: 20px; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+    h2 { color: #0a66c2; }
+    .example { background: #eef4fc; padding: 15px; margin-top: 20px; border-left: 4px solid #2196f3; }
+    .canvas-box { margin-top: 30px; text-align: center; }
+    canvas { background: #fff; border: 1px solid #ccc; border-radius: 8px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Transformer MVA vs Current Loading</h1>
+  </header>
+
+  <div class="container">
+    <h2>🔍 What is MVA Loading?</h2>
+    <p>
+      Transformer MVA loading is the ratio of the transformer's operating apparent power (S = √3 × V × I) to its rated MVA capacity. It provides a combined measure of how much real and reactive power a transformer is transferring.
+    </p>
+
+    <h2>🔌 What is Current Loading?</h2>
+    <p>
+      Current loading looks only at the magnitude of current flowing through the transformer winding compared to its rated current. It's important when assessing thermal limits and relay settings.
+    </p>
+
+    <div class="example">
+      <strong>Example:</strong><br />
+      A 100 MVA transformer rated at 132 kV side and drawing 400 A:
+      <ul>
+        <li><strong>MVA Loading</strong> = √3 × 132 × 0.4 / 100 = ~91.5%</li>
+        <li><strong>Current Loading</strong> = 400 A / Rated Current</li>
+      </ul>
+    </div>
+
+    <div class="canvas-box">
+      <h3>🎞️ MVA Loading Animation (S = √3 × V × I)</h3>
+      <canvas id="mvaCanvas" width="500" height="200"></canvas>
+    </div>
+
+    <div class="canvas-box">
+      <h3>🎞️ Current Loading Animation (I / I<sub>rated</sub>)</h3>
+      <canvas id="currentCanvas" width="500" height="200"></canvas>
+    </div>
+
+    <h2>🧠 Summary</h2>
+    <ul>
+      <li><strong>MVA Loading</strong> reflects power throughput (used in planning/operations).</li>
+      <li><strong>Current Loading</strong> is critical for protection and thermal design.</li>
+      <li>Both are needed to fully assess transformer utilization.</li>
+    </ul>
+  </div>
+
+  <script>
+    function animateMVALoading(ctx) {
+      let time = 0;
+      function draw() {
+        ctx.clearRect(0, 0, 500, 200);
+        const I = 400 + 50 * Math.sin(time);
+        const V = 132;
+        const S = Math.sqrt(3) * V * I / 1000; // in MVA
+
+        ctx.font = "16px Arial";
+        ctx.fillText(`V = ${V} kV`, 20, 40);
+        ctx.fillText(`I = ${I.toFixed(1)} A`, 20, 70);
+        ctx.fillText(`S = √3 × V × I = ${S.toFixed(2)} MVA`, 20, 100);
+        ctx.fillText(`% Loading (for 100 MVA) = ${(S/100*100).toFixed(1)}%`, 20, 130);
+        time += 0.05;
+        requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    function animateCurrentLoading(ctx) {
+      let time = 0;
+      function draw() {
+        ctx.clearRect(0, 0, 500, 200);
+        const ratedCurrent = 500;
+        const I = 400 + 50 * Math.sin(time);
+        const percent = I / ratedCurrent * 100;
+
+        ctx.font = "16px Arial";
+        ctx.fillText(`Rated I = ${ratedCurrent} A`, 20, 40);
+        ctx.fillText(`Actual I = ${I.toFixed(1)} A`, 20, 70);
+        ctx.fillText(`% Current Loading = ${percent.toFixed(1)}%`, 20, 100);
+
+        time += 0.05;
+        requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    const mvaCtx = document.getElementById('mvaCanvas').getContext('2d');
+    const currentCtx = document.getElementById('currentCanvas').getContext('2d');
+    animateMVALoading(mvaCtx);
+    animateCurrentLoading(currentCtx);
+  </script>
+</body>
+</html>
