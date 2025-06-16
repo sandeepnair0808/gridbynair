@@ -19,15 +19,15 @@
   </header>
 
   <div id="controls">
-    <input type="file" id="file-input" accept=".json">
-    <p>Upload a grid JSON file exported from a PSS/E parser</p>
+    <input type="file" id="file-input" accept=".json,.raw,.txt">
+    <p>Upload a grid file in JSON or PSS/E .raw format</p>
   </div>
 
   <div id="cy"></div>
 
   <script>
     const voltageColor = voltage => {
-      if (voltage >= 500) return '#1B5E20'; // Extra high
+      if (voltage >= 500) return '#1B5E20';
       if (voltage >= 230) return '#4CAF50';
       if (voltage >= 138) return '#2196F3';
       if (voltage >= 69)  return '#FFC107';
@@ -40,11 +40,51 @@
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const json = JSON.parse(e.target.result);
-        renderNetwork(json);
+        const content = e.target.result;
+        if (file.name.endsWith('.json')) {
+          renderNetwork(JSON.parse(content));
+        } else {
+          const parsed = parseRaw(content);
+          if (parsed) renderNetwork(parsed);
+        }
       };
       reader.readAsText(file);
     });
+
+    function parseRaw(text) {
+      const lines = text.split('\n');
+      const buses = [], branches = [];
+      let inBus = false, inBranch = false;
+
+      for (let line of lines) {
+        line = line.trim();
+        if (line.includes("BEGIN BUS DATA")) inBus = true;
+        else if (line.includes("END OF BUS DATA")) inBus = false;
+        else if (line.includes("BEGIN BRANCH DATA")) inBranch = true;
+        else if (line.includes("END OF BRANCH DATA")) inBranch = false;
+
+        if (inBus && line && !line.startsWith('0')) {
+          const parts = line.split(',');
+          const id = parseInt(parts[0]);
+          const voltage = parseFloat(parts[1]);
+          const name = (parts[8] || '').replace(/'/g, '').trim();
+          if (!isNaN(id) && !isNaN(voltage)) {
+            buses.push({ id, voltage, name });
+          }
+        }
+
+        if (inBranch && line && !line.startsWith('0')) {
+          const parts = line.split(',');
+          const from = parseInt(parts[0]);
+          const to = parseInt(parts[1]);
+          if (!isNaN(from) && !isNaN(to)) {
+            branches.push({ from, to });
+          }
+        }
+      }
+
+      return { buses, branches };
+    }
 
     function renderNetwork(data) {
       const elements = [];
@@ -79,7 +119,7 @@
         });
       });
 
-      const cy = cytoscape({
+      cytoscape({
         container: document.getElementById('cy'),
         elements: elements,
         layout: {
