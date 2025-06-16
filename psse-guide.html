@@ -1,89 +1,60 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PSSE 35 Integration Guide</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f4f6f8;
-      color: #333;
-    }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: white;
-      padding: 30px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h1, h2 {
-      color: #0a66c2;
-    }
-    pre {
-      background: #eee;
-      padding: 15px;
-      overflow-x: auto;
-      font-size: 0.9rem;
-    }
-    img {
-      max-width: 100%;
-      margin: 20px 0;
-      border: 1px solid #ccc;
-    }
-    a {
-      color: #0a66c2;
-      text-decoration: none;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>PSSE 35 Python Integration Guide</h1>
-    <p>This page shows how to integrate Siemens PSSE 35 with Python on a Windows machine. Make sure you are using the right bit version of Python (32-bit or 64-bit) depending on the PSSE version.</p>
+import sys
+import os
 
-    <h2>Screenshot</h2>
-    <img src="22b1dc0f-784e-4777-8e0f-b392e54c16eb.png" alt="PSSE Terminal Launch Screenshot" />
+#################
+# User Input
+#################
+psseversion = 35  # Change this to 33, 34, or 35 depending on your installed version
+#################
 
-    <h2>Python Script</h2>
-    <pre><code>import sys, os
+# Automatically detect current Python version
+pythonversion = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
+print("Detected Python version:", pythonversion)
 
-# Inputs
-psseversion = 35
+#####################################
+# Load psspy and set PATH variables
+#####################################
 
-# Get Python version
-pythonversion = '{}.{}'.format(sys.version_info[0],sys.version_info[1]) 
-
-# Load psspy path and environment
 if psseversion == 35:
-    if pythonversion in ['2.7','3.7','3.8','3.9']:
+    if pythonversion in ['2.7', '3.7', '3.8', '3.9']:
         pyver_short = int(pythonversion.replace('.', ''))
-        sys.path.append(r"C:\Program Files\PTI\PSSE35\35.3\PSSPY{}".format(pyver_short))
-        os.environ['PATH'] = r"C:\Program Files\PTI\PSSE35\35.3\PSSPY{};".format(pyver_short) + os.environ['PATH']
+        psse_path = r"C:\Program Files\PTI\PSSE35\35.3\PSSPY{}".format(pyver_short)
+        sys.path.append(psse_path)
+        os.environ['PATH'] = psse_path + ";" + os.environ['PATH']
+        import psse35
     else:
-        print('Unsupported python version')
+        print("Unsupported Python version for PSSE 35. Use 2.7, 3.7, 3.8, or 3.9 (64-bit).")
         sys.exit()
-    import psse35
 
 elif psseversion == 34:
-    # Similar structure...
+    if pythonversion in ['2.7', '3.4', '3.7', '3.9']:
+        pyver_short = int(pythonversion.replace('.', ''))
+        psse_path = r"C:\Program Files (x86)\PTI\PSSE34\PSSPY{}".format(pyver_short)
+        sys.path.append(psse_path)
+        os.environ['PATH'] = psse_path + ";" + os.environ['PATH']
+        import psse34
+    else:
+        print("Unsupported Python version for PSSE 34. Use 32-bit Python 2.7, 3.4, 3.7, or 3.9.")
+        sys.exit()
 
-# Final setup
-import psspy
-psspy.psseinit(buses=150000)</code></pre>
+elif psseversion == 33:
+    if pythonversion == '2.7':
+        psse_path = r"C:\Program Files (x86)\PTI\PSSE33\PSSBIN"
+        sys.path.append(psse_path)
+        os.environ['PATH'] = psse_path + ";" + os.environ['PATH']
+    else:
+        print("Unsupported Python version for PSSE 33. Use 32-bit Python 2.7.")
+        sys.exit()
+else:
+    print("Invalid PSSE version. Choose 33, 34, or 35.")
+    sys.exit()
 
-    <h2>How to Use</h2>
-    <ol>
-      <li>Install compatible Python (preferably 3.7 or 3.9 for PSSE 35).</li>
-      <li>Update the correct path to <code>PSSPYxx</code> for your Python version.</li>
-      <li>Ensure `psspy.psseinit()` is used to initialize the API before loading or simulating cases.</li>
-      <li>Run the script using your terminal or IDE (Admin rights may be required).</li>
-    </ol>
-
-    <p><a href="index.html">← Back to Resume</a></p>
-  </div>
-</body>
-</html>
+#####################################
+# Initialize PSSE
+#####################################
+try:
+    import psspy
+    psspy.psseinit(buses=150000)
+    print("PSSE initialized successfully.")
+except Exception as e:
+    print("Error initializing PSSE:", str(e))
