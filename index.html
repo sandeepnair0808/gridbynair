@@ -20,6 +20,196 @@
   <meta name="twitter:title" content="Sandeep Nair – Grid Modeling & Automation Tools" />
   <meta name="twitter:description" content="Access load flow simulators, PSSE scripting tutorials, short circuit tools, and automation workflows by Sandeep Nair." />
   <meta name="twitter:image" content="https://gridbynair.com/og-preview.jpg" />
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background: #f9fbfd;
+      color: #333;
+    }
+    header {
+      background-color: #0a66c2;
+      padding: 40px 20px;
+      color: white;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 2.5rem;
+      margin: 0;
+    }
+    header p {
+      margin: 8px 0 0;
+      font-size: 1.2rem;
+    }
+    nav {
+      text-align: center;
+      padding: 16px 0;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    nav a {
+      color: #0a66c2;
+      text-decoration: none;
+      margin: 0 20px;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    .container {
+      max-width: 960px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .hero h2 {
+      font-size: 2rem;
+      margin-top: 0;
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .buttons a {
+      background: #0a66c2;
+      color: white;
+      text-decoration: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+    .buttons a:hover {
+      background: #004a99;
+    }
+    footer {
+      text-align: center;
+      padding: 24px;
+      background: #f1f3f5;
+      font-size: 0.95rem;
+      color: #666;
+      margin-top: 60px;
+    }
+    .floating-contact {
+      position: fixed;
+      bottom: 300px;
+      right: 20px;
+      background: #0a66c2;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.9rem;
+      z-index: 10000;
+    }
+    .donation {
+      position: fixed;
+      bottom: 160px;
+      right: 20px;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      z-index: 9998;
+    }
+    .donation a {
+      display: block;
+      margin: 4px 0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .donation .coffee { background-color: #ffdd00; color: #000; }
+    .donation .gpay { background-color: #4285f4; color: white; }
+    #speech-bubble {
+      position: fixed;
+      bottom: 190px;
+      right: 30px;
+      background: #fff;
+      color: #333;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      display: none;
+      z-index: 10001;
+    }
+    #mascot-wrapper {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 160px;
+      z-index: 9999;
+    }
+    #mascot {
+      width: 100%;
+      display: block;
+      cursor: pointer;
+    }
+    .eye, .eyelid {
+      pointer-events: auto;
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .eye {
+      background: black;
+      z-index: 10001;
+    }
+    .left-eye { top: 50px; left: 60px; }
+    .right-eye { top: 50px; left: 78px; }
+    .eyelid {
+      background: #f9fbfd;
+      z-index: 10002;
+      opacity: 0;
+    }
+    .eyelid.left { top: 50px; left: 60px; }
+    .eyelid.right { top: 50px; left: 78px; }
+    .eyelid.blink {
+      animation: blink 1s ease-in-out;
+    }
+    @keyframes blink {
+      0% { opacity: 0; transform: scaleY(0); }
+      50% { opacity: 1; transform: scaleY(1); }
+      100% { opacity: 0; transform: scaleY(0); }
+    }
+    @keyframes explode {
+      0% { transform: scale(1) rotate(0deg); opacity: 1; }
+      50% { transform: scale(1.8) rotate(180deg); opacity: 0.5; }
+      100% { transform: scale(0) rotate(360deg); opacity: 0; }
+    }
+    #mascot.explode { animation: explode 0.8s ease-out forwards; }
+    #mascot-menu {
+      display: none;
+      position: fixed;
+      bottom: 220px;
+      right: 30px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 10000;
+    }
+    #mascot-menu a {
+      display: block;
+      margin: 5px 0;
+      text-decoration: none;
+      color: #0a66c2;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -61,14 +251,14 @@
   </div>
   <div id="speech-bubble">Need help? Click me 💥</div>
   <div id="mascot-wrapper">
-    <img id="mascot" src="your-villain-mascot.png" alt="Villain Mascot" />
+    <img id="mascot" src="/mnt/data/79e0ce2c-6ea0-41b9-a3a9-634cd58ab0e7.png" alt="Villain Mascot" />
     <div class="eye left-eye"></div>
     <div class="eye right-eye"></div>
     <div class="eyelid left eyelid-left"></div>
     <div class="eyelid right eyelid-right"></div>
   </div>
   <div id="mascot-menu">
-    <a href="loadflow-converter.html">🔀 Load Flow Converter</a>
+    <a href="loadflow-converter.html">🔁 Load Flow Converter</a>
     <a href="short-circuit-tool.html">⚡ Short Circuit Tool</a>
     <a href="voltage-profile.html">📊 Voltage Profile Explorer</a>
   </div>
@@ -157,8 +347,6 @@
 
     const hour = new Date().getHours();
     if (hour >= 19 || hour < 6) {
-      mascot.src = 'your-villain-mascot-night.png';
+      mascot.src = '/mnt/data/79e0ce2c-6ea0-41b9-a3a9-634cd58ab0e7.png';
     }
   </script>
-</body>
-</html>
