@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Load Flow Converter</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f7fa;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    h1 {
+      color: #0a66c2;
+    }
+    input[type="file"] {
+      margin-top: 20px;
+    }
+    pre {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    .button-row {
+      margin-top: 20px;
+    }
+    button {
+      background: #0a66c2;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      margin-right: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #004a99;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Load Flow Case Converter</h1>
+    <p>Select a <strong>.raw</strong> or <strong>.sav</strong> file to convert into JSON/CSV for easier viewing or automation.</p>
+    <input type="file" id="upload" accept=".raw,.sav,.txt" />
+
+    <div class="button-row">
+      <button onclick="convertToJSON()">Convert to JSON</button>
+      <button onclick="convertToCSV()">Convert to CSV</button>
+    </div>
+
+    <h3>Parsed Output:</h3>
+    <pre id="output">No file uploaded yet.</pre>
+  </div>
+
+  <script>
+    let parsedData = [];
+
+    document.getElementById('upload').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function (event) {
+        const lines = event.target.result.split('\n');
+        parsedData = parseRAW(lines);
+        document.getElementById('output').textContent = JSON.stringify(parsedData, null, 2);
+      };
+
+      reader.readAsText(file);
+    });
+
+    function parseRAW(lines) {
+      const buses = [];
+      for (const line of lines) {
+        if (line.trim() === 'END OF BUS DATA') break;
+        if (line.match(/\d+,\s*['"]?/)) {
+          const parts = line.split(',');
+          buses.push({
+            bus: parts[0]?.trim(),
+            name: parts[1]?.trim().replace(/['"]/g, ''),
+            baseKV: parts[2]?.trim(),
+            type: parts[3]?.trim(),
+            area: parts[4]?.trim(),
+          });
+        }
+      }
+      return buses;
+    }
+
+    function convertToJSON() {
+      const blob = new Blob([JSON.stringify(parsedData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'loadflow-converted.json';
+      a.click();
+    }
+
+    function convertToCSV() {
+      if (!parsedData.length) return;
+      const keys = Object.keys(parsedData[0]);
+      const csv = [keys.join(',')].concat(parsedData.map(row => keys.map(k => row[k]).join(','))).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'loadflow-converted.csv';
+      a.click();
+    }
+  </script>
+</body>
+</html>
