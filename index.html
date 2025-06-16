@@ -1,101 +1,226 @@
-<meta name="description" content="Sandeep Nair – Siemens PTI PSS/E expert in load flow, grid modeling, Python automation, and transmission planning tools. Access power system simulations, scripts, calculators and visualization tools for engineers.">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sandeep Nair | Power Systems Tools & PSS/E Automation</title>
+
+  <!-- SEO Meta -->
+  <meta name="description" content="Sandeep Nair – Siemens PTI PSS/E expert in load flow, grid modeling, Python automation, and transmission planning tools. Access power system simulations, scripts, calculators and visualization tools for engineers.">
   <meta name="keywords" content="Sandeep Nair, gridbynair, PSSE, PSS/E, Siemens PTI, power system simulation, contingency analysis, load flow tools, dynamic studies, short circuit calculator, voltage profile explorer, network model viewer, power system engineer, grid studies, transmission planning, python automation for PSSE">
   <meta name="author" content="Sandeep Nair">
+  <link rel="canonical" href="https://gridbynair.com/" />
+
+  <!-- Open Graph -->
   <meta property="og:title" content="Sandeep Nair | Power Systems & PSS/E Expert" />
   <meta property="og:description" content="Explore professional-grade power system tools, guides, and automation built around Siemens PTI PSS/E by Sandeep Nair." />
   <meta property="og:url" content="https://gridbynair.com" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://gridbynair.com/og-preview.jpg" />
+
+  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Sandeep Nair – Grid Modeling & Automation Tools" />
   <meta name="twitter:description" content="Access load flow simulators, PSSE scripting tutorials, short circuit tools, and automation workflows by Sandeep Nair." />
   <meta name="twitter:image" content="https://gridbynair.com/og-preview.jpg" />
 
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
   <style>
-  #mascot-wrapper {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 160px;
-    z-index: 9999;
-    pointer-events: none;
-  }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background: #f4f6f8;
+      color: #333;
+    }
 
-  #mascot {
-    width: 100%;
-    display: block;
-  }
+    header {
+      background-color: #0a66c2;
+      padding: 20px;
+      color: white;
+      text-align: center;
+    }
 
-  .eye {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background: black;
-    border-radius: 50%;
-    transition: transform 0.05s linear;
-    z-index: 10001;
-  }
+    nav {
+      text-align: center;
+      padding: 12px 0;
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
 
-  .left-eye {
-    top: 61px;
-    left: 47px;
-  }
+    nav a {
+      color: #0a66c2;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: bold;
+    }
 
-  .right-eye {
-    top: 61px;
-    left: 85px;
-  }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 40px 20px;
+      background: white;
+    }
 
-  .eyelid {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background: #f4f6f8;
-    border-radius: 50%;
-    z-index: 10002;
-    pointer-events: none;
-    opacity: 0;
-  }
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.9rem;
+      color: #666;
+    }
 
-  .eyelid.blink {
-    animation: blink 1s ease-in-out;
-  }
+    .buttons a {
+      display: inline-block;
+      padding: 12px 20px;
+      margin: 8px;
+      background-color: #0a66c2;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+    }
 
-  @keyframes blink {
-    0% { opacity: 0; transform: scaleY(0); }
-    50% { opacity: 1; transform: scaleY(1); }
-    100% { opacity: 0; transform: scaleY(0); }
-  }
+    #mascot-wrapper {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 160px;
+      z-index: 9999;
+      pointer-events: none;
+    }
 
-  .eyelid.left {
-    top: 61px;
-    left: 47px;
-  }
+    #mascot {
+      width: 100%;
+      display: block;
+    }
 
-  .eyelid.right {
-    top: 61px;
-    left: 85px;
-  }
-</style>
+    .eye {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: black;
+      border-radius: 50%;
+      transition: transform 0.05s linear;
+      z-index: 10001;
+    }
 
-<!-- Tools Section -->
-<div class="container">
-  <section class="hero">
-    <h2>Welcome</h2>
-    <p>
-      I'm Sandeep Nair, a power systems engineer specializing in Siemens PTI PSS/E, Python-based automation, and transmission planning. I build tools and workflows for load flow simulations, contingency analysis, transformer loading, dynamic stability studies, and renewable integration. This site shares my guides and research with the global energy engineering community.
-    </p>
-    <div class="buttons">
-      <a href="psse-guide.html">Read PSS/E Guide</a>
-      <a href="downloads.html">Access Tools</a>
-      <a href="network-viewer.html">View Grid</a>
-      <a href="contingency-explainer.html">Contingency Analysis</a>
-      <a href="transformer-loading.html">Transformer Loading Explained</a>
-      <a href="drive-mapping.html">Drive Mapping</a>
-      <a href="short-circuit-tool.html">Short Circuit Calculator</a>
-      <a href="loadflow-converter.html">Load Flow Case Converter</a>
-      <a href="line-impedance-tool.html">Line Impedance Visualizer</a>
-      <a href="voltage-profile.html">Voltage Profile Explorer</a>
-    </div>
-  </section>
-</div>
+    .left-eye {
+      top: 61px;
+      left: 47px;
+    }
+
+    .right-eye {
+      top: 61px;
+      left: 85px;
+    }
+
+    .eyelid {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #f4f6f8;
+      border-radius: 50%;
+      z-index: 10002;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .eyelid.blink {
+      animation: blink 1s ease-in-out;
+    }
+
+    @keyframes blink {
+      0% { opacity: 0; transform: scaleY(0); }
+      50% { opacity: 1; transform: scaleY(1); }
+      100% { opacity: 0; transform: scaleY(0); }
+    }
+
+    .eyelid.left {
+      top: 61px;
+      left: 47px;
+    }
+
+    .eyelid.right {
+      top: 61px;
+      left: 85px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Sandeep Nair</h1>
+    <p>Transmission Planner | PSS/E | Python Automation</p>
+  </header>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="psse-guide.html">PSS/E Guide</a>
+    <a href="downloads.html">Downloads</a>
+  </nav>
+
+  <!-- Tools Section -->
+  <div class="container">
+    <section class="hero">
+      <h2>Welcome</h2>
+      <p>
+        I'm Sandeep Nair, a power systems engineer specializing in Siemens PTI PSS/E, Python-based automation, and transmission planning. I build tools and workflows for load flow simulations, contingency analysis, transformer loading, dynamic stability studies, and renewable integration. This site shares my guides and research with the global energy engineering community.
+      </p>
+      <div class="buttons">
+        <a href="psse-guide.html">Read PSS/E Guide</a>
+        <a href="downloads.html">Access Tools</a>
+        <a href="network-viewer.html">View Grid</a>
+        <a href="contingency-explainer.html">Contingency Analysis</a>
+        <a href="transformer-loading.html">Transformer Loading Explained</a>
+        <a href="drive-mapping.html">Drive Mapping</a>
+        <a href="short-circuit-tool.html">Short Circuit Calculator</a>
+        <a href="loadflow-converter.html">Load Flow Case Converter</a>
+        <a href="line-impedance-tool.html">Line Impedance Visualizer</a>
+        <a href="voltage-profile.html">Voltage Profile Explorer</a>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    &copy; 2025 Sandeep Nair · gridbynair.com
+  </footer>
+
+  <!-- Mascot -->
+  <div id="mascot-wrapper">
+    <img id="mascot" src="engineer-mascot.png" alt="Engineer Mascot" />
+    <div class="eye left-eye"></div>
+    <div class="eye right-eye"></div>
+    <div class="eyelid left eyelid-left"></div>
+    <div class="eyelid right eyelid-right"></div>
+  </div>
+
+  <script>
+    const eyes = document.querySelectorAll('.eye');
+    document.addEventListener('mousemove', (e) => {
+      eyes.forEach(eye => {
+        const rect = eye.getBoundingClientRect();
+        const eyeX = rect.left + rect.width / 2;
+        const eyeY = rect.top + rect.height / 2;
+        const angle = Math.atan2(e.clientY - eyeY, e.clientX - eyeX);
+        const offset = 4;
+        const x = Math.cos(angle) * offset;
+        const y = Math.sin(angle) * offset;
+        eye.style.transform = `translate(${x}px, ${y}px)`;
+      });
+    });
+
+    const leftLid = document.querySelector('.eyelid-left');
+    const rightLid = document.querySelector('.eyelid-right');
+    function blink() {
+      leftLid.classList.add('blink');
+      rightLid.classList.add('blink');
+      setTimeout(() => {
+        leftLid.classList.remove('blink');
+        rightLid.classList.remove('blink');
+      }, 1000);
+    }
+    setInterval(blink, 4000);
+  </script>
+
+</body>
+</html>
