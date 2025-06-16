@@ -56,7 +56,7 @@
     button:hover {
       background-color: #004a99;
     }
-    .output, .schematic {
+    .output {
       margin-top: 30px;
       background: #f3f8ff;
       padding: 20px;
@@ -100,7 +100,7 @@
     <button onclick="exportCSV()">Export as CSV</button>
 
     <div class="output" id="collectorOutput">Awaiting input...</div>
-    <canvas id="schematicCanvas" width="800" height="600"></canvas>
+    <canvas id="schematicCanvas" width="1000" height="800"></canvas>
   </main>
 
   <script>
@@ -147,35 +147,51 @@
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      const busX = canvas.width / 2;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(busX - 40, 20, 80, 8);
+      ctx.fillText("Main Collector Bus", busX - 50, 15);
+
       const feeders = [...new Set(layout.map(x => x.feeder))];
-      const spacingX = 120;
-      const spacingY = 60;
+      const spacingY = 80;
 
       feeders.forEach((feeder, i) => {
-        const x = 100 + i * spacingX;
+        const yStart = 40 + i * spacingY;
+        const feederX = busX - 200 + i * 80;
+
+        ctx.beginPath();
+        ctx.moveTo(busX, 28);
+        ctx.lineTo(feederX, yStart);
+        ctx.stroke();
+
         ctx.fillStyle = '#0a66c2';
-        ctx.fillRect(x, 20, 6, 30);
-        ctx.fillText(`F${feeder}`, x - 5, 15);
+        ctx.fillText(`Feeder ${feeder}`, feederX - 20, yStart - 10);
+
+        // Draw padmount
+        ctx.fillStyle = '#888';
+        ctx.fillRect(feederX - 10, yStart + 5, 20, 20);
+        ctx.strokeRect(feederX - 10, yStart + 5, 20, 20);
+        ctx.fillStyle = '#000';
+        ctx.fillText("Padmount", feederX - 25, yStart + 40);
 
         const feederInverters = layout.filter(x => x.feeder === feeder);
         feederInverters.forEach((inv, j) => {
-          const y = 70 + j * spacingY;
+          const y = yStart + 60 + j * 40;
           ctx.beginPath();
-          ctx.moveTo(x + 3, 50);
-          ctx.lineTo(x + 3, y);
+          ctx.moveTo(feederX, yStart + 25);
+          ctx.lineTo(feederX, y);
           ctx.stroke();
 
-          ctx.beginPath();
-          ctx.arc(x + 3, y, 10, 0, 2 * Math.PI);
           ctx.fillStyle = '#34a853';
-          ctx.fill();
-          ctx.stroke();
+          ctx.fillRect(feederX - 15, y - 10, 30, 20);
+          ctx.strokeRect(feederX - 15, y - 10, 30, 20);
 
           ctx.fillStyle = '#000';
-          ctx.fillText(`I${inv.inverter}`, x - 10, y + 25);
+          ctx.fillText(`I${inv.inverter}`, feederX + 20, y + 5);
+
           if (inv.capacitor) {
             ctx.fillStyle = '#ff9800';
-            ctx.fillText(`+${inv.capacitor}kVAR`, x - 20, y + 40);
+            ctx.fillText(`+${inv.capacitor}kVAR`, feederX + 20, y + 20);
           }
         });
       });
