@@ -104,14 +104,20 @@
       <label for="lvLoad">Add Load on LV side</label>
     </div>
 
-    <button onclick="generateCollector()">Generate Collector Layout</button>
+    <button id="generateBtn">Generate Collector Layout</button>
     <button onclick="exportCSV()">Export CSV</button>
     <button onclick="exportPNG()">Export PNG</button>
 
     <div class="output" id="collectorOutput">Awaiting input...</div>
     <canvas id="schematicCanvas" width="1600" height="1200"></canvas>
   </main>
+
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("generateBtn").addEventListener("click", generateCollector);
+});
+
+// Drawing logic
 let parsedLayout = [];
 
 function generateCollector() {
@@ -152,12 +158,17 @@ function generateCollector() {
     }
   });
 
-  document.getElementById('collectorOutput').textContent = `🌞 Total Inverters: ${total}
-Feeders: ${feederConfig.length}
-Capacitor Bank: ${capacitor || 0} kVAR
-` + feederConfig.map((n, i) => `Feeder ${i+1} → ${n} inverters`).join("
+  document.getElementById('collectorOutput').textContent =
+    `🌞 Total Inverters: ${total}
+` +
+    `Feeders: ${feederConfig.length}
+` +
+    `Capacitor Bank: ${capacitor || 0} kVAR
+` +
+    feederConfig.map((n, i) => `Feeder ${i + 1} → ${n} inverters`).join("
 ");
-  drawStructuredLayout(parsedLayout, feederConfig, capacitor, lvLoad);
+
+  drawPlaceholder();
 }
 
 function drawPlaceholder() {
@@ -188,86 +199,6 @@ function exportPNG() {
   link.download = 'solar_farm_schematic.png';
   link.href = canvas.toDataURL();
   link.click();
-}
-
-function drawStructuredLayout(layout, feederConfig, capacitor, lvLoad) {
-  const canvas = document.getElementById('schematicCanvas');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  const spacing = canvas.width / (feederConfig.length + 1);
-  const topBusY = 50;
-  const unitSpacingY = 80;
-  ctx.fillStyle = '#000';
-  ctx.fillRect(50, topBusY, canvas.width - 100, 8);
-  ctx.fillText("SubMV Bus", canvas.width/2 - 50, topBusY - 10);
-
-  const showCables = false; // cable labels placeholder
-
-  let invIndex = 0;
-  feederConfig.forEach((count, fIdx) => {
-    const x = spacing * (fIdx + 1);
-    const busStartY = topBusY + 80;
-    const busEndY = busStartY + (count - 1) * unitSpacingY + 20;
-
-    ctx.beginPath();
-    ctx.moveTo(x, topBusY + 8);
-    ctx.lineTo(x, busEndY);
-    ctx.stroke();
-
-    ctx.fillStyle = '#0a66c2';
-    ctx.fillText(`Feeder ${fIdx + 1}`, x - 30, busStartY - 10);
-
-    for (let i = 0; i < count; i++) {
-      const y = busStartY + i * unitSpacingY;
-
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, 2 * Math.PI);
-      ctx.fillStyle = 'red';
-      ctx.fill();
-      ctx.fillStyle = '#000';
-
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + 40, y);
-      ctx.stroke();
-
-      ctx.fillStyle = '#888';
-      ctx.fillRect(x + 40, y - 10, 20, 20);
-      ctx.strokeRect(x + 40, y - 10, 20, 20);
-
-      ctx.beginPath();
-      ctx.moveTo(x + 50, y + 10);
-      ctx.lineTo(x + 50, y + 20);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(x + 50, y + 20, 4, 0, 2 * Math.PI);
-      ctx.fillStyle = 'blue';
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(x + 50, y + 20);
-      ctx.lineTo(x + 50, y + 30);
-      ctx.stroke();
-
-      ctx.fillStyle = '#34a853';
-      ctx.fillRect(x + 35, y + 30, 30, 20);
-      ctx.strokeRect(x + 35, y + 30, 30, 20);
-
-      ctx.fillStyle = '#000';
-      ctx.fillText(`I${layout[invIndex++].inverter}`, x + 35, y + 65);
-
-      if (lvLoad) {
-        ctx.fillStyle = '#e91e63';
-        ctx.beginPath();
-        ctx.moveTo(x + 50, y + 50);
-        ctx.lineTo(x + 70, y + 70);
-        ctx.stroke();
-        ctx.fillText("LV Load", x + 60, y + 85);
-      }
-    }
-  });
 }
 </script>
 </body>
