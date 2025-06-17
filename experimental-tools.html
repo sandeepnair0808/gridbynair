@@ -153,7 +153,7 @@
       parsedLayout = [];
       let invIndex = 1;
       feederConfig.forEach((count, i) => {
-        const feederLabel = `${10 + i}${i % 2 === 0 ? 'A' : 'B'}`;
+        const feederLabel = `${11 + Math.floor(i / 2)}${i % 2 === 0 ? 'A' : 'B'}`;
         for (let j = 1; j <= count; j++) {
           const inverterName = `${feederLabel}${String(j).padStart(2, '0')}`;
           parsedLayout.push({ feeder: feederLabel, inverter: inverterName, capacitor: 0, voltage, impedance });
