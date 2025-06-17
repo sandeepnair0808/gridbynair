@@ -103,9 +103,10 @@
       <input type="checkbox" id="lvLoad">
       <label for="lvLoad">Add Load on LV side</label>
     </div>
+    $1
     <div class="checkbox-row">
-      <input type="checkbox" id="mvLoad">
-      <label for="mvLoad">Add Load on MV side</label>
+      <input type="checkbox" id="showCables">
+      <label for="showCables">Show Cable Names</label>
     </div>
 
     <button onclick="generateCollector()">Generate Collector Layout</button>
@@ -174,18 +175,20 @@
       const unitSpacingY = 80;
       ctx.fillStyle = '#000';
       ctx.fillRect(50, topBusY, canvas.width - 100, 8);
-      ctx.fillText("Main Collector Bus", canvas.width/2 - 50, topBusY - 10);
+      ctx.fillText("SubMV Bus", canvas.width/2 - 50, topBusY - 10);
 
       if (capacitor > 0) {
+        const capX = canvas.width - 100;
         ctx.fillStyle = '#ff9800';
-        ctx.fillRect(canvas.width/2 - 15, topBusY + 25, 30, 20);
-        ctx.strokeRect(canvas.width/2 - 15, topBusY + 25, 30, 20);
+        ctx.fillRect(capX - 15, topBusY + 25, 30, 20);
+        ctx.strokeRect(capX - 15, topBusY + 25, 30, 20);
         ctx.fillStyle = '#000';
-        ctx.fillText(`${capacitor} kVAR`, canvas.width/2 - 30, topBusY + 60);
+        ctx.fillText(`${capacitor} kVAR`, capX - 30, topBusY + 60);
         ctx.beginPath();
-        ctx.moveTo(canvas.width/2, topBusY + 8);
-        ctx.lineTo(canvas.width/2, topBusY + 25);
+        ctx.moveTo(capX, topBusY + 8);
+        ctx.lineTo(capX, topBusY + 25);
         ctx.stroke();
+      }
       }
 
       let invIndex = 0;
@@ -205,8 +208,14 @@
         ctx.fillStyle = '#0a66c2';
         ctx.fillText(`Feeder ${fIdx + 1}`, x - 30, busStartY - 10);
 
-        for (let i = 0; i < count; i++) {
-          const y = busStartY + i * unitSpacingY;
+        $1
+          const cableFrom = layout[invIndex]?.inverter;
+          const cableTo = layout[invIndex + 1]?.inverter;
+          if (document.getElementById('showCables').checked && cableFrom && cableTo && layout[invIndex].feeder === layout[invIndex + 1].feeder) {
+            ctx.fillStyle = '#555';
+            ctx.fillText(`${cableFrom} - ${cableTo}`, x + 60, y - 12);
+          }
+
 
           // draw 34.5kV red bus marker
           ctx.beginPath();
@@ -256,7 +265,7 @@
           ctx.strokeRect(x + 35, y + 30, 30, 20);
 
           ctx.fillStyle = '#000';
-          ctx.fillText(`${layout[invIndex++]?.inverter}`, x + 35, y + 65);
+          ctx.fillText(layout[invIndex++]?.inverter, x + 35, y + 65);
 
           if (lvLoad) {
             ctx.fillStyle = '#e91e63';
