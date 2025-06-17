@@ -75,7 +75,7 @@
 <body>
   <header>
     <h1>⚡ Solar Farm Collector Designer</h1>
-    <p>Each feeder has a dedicated vertical bus, with 1:1 padmount-inverter</p>
+    <p>Feeder layout with spaced padmount-inverter units and precise feeder terminations</p>
   </header>
   <main>
     <label>Total Number of Inverters</label>
@@ -169,6 +169,7 @@
 
       const spacing = canvas.width / (feederConfig.length + 1);
       const topBusY = 50;
+      const unitSpacingY = 80;
       ctx.fillStyle = '#000';
       ctx.fillRect(50, topBusY, canvas.width - 100, 8);
       ctx.fillText("Main Collector Bus", canvas.width/2 - 50, topBusY - 10);
@@ -189,23 +190,18 @@
       feederConfig.forEach((count, fIdx) => {
         const x = spacing * (fIdx + 1);
         const busStartY = topBusY + 80;
-        const busHeight = count * 60 + 20;
+        const busEndY = busStartY + (count - 1) * unitSpacingY + 20;
 
         ctx.beginPath();
         ctx.moveTo(x, topBusY + 8);
-        ctx.lineTo(x, busStartY);
+        ctx.lineTo(x, busEndY);
         ctx.stroke();
-        ctx.fillStyle = '#0a66c2';
-        ctx.fillText(`Feeder ${fIdx + 1}`, x - 30, busStartY + 15);
 
-        // draw feeder bus
-        ctx.beginPath();
-        ctx.moveTo(x, busStartY);
-        ctx.lineTo(x, busStartY + busHeight);
-        ctx.stroke();
+        ctx.fillStyle = '#0a66c2';
+        ctx.fillText(`Feeder ${fIdx + 1}`, x - 30, busStartY - 10);
 
         for (let i = 0; i < count; i++) {
-          const y = busStartY + 20 + i * 60;
+          const y = busStartY + i * unitSpacingY;
 
           ctx.beginPath();
           ctx.moveTo(x, y);
