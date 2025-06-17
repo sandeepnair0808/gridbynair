@@ -194,7 +194,10 @@
 
         ctx.beginPath();
         ctx.moveTo(x, topBusY + 8);
-        ctx.lineTo(x, busEndY);
+        if (count > 0) {
+          const lastY = busStartY + (count - 1) * unitSpacingY;
+          ctx.lineTo(x, lastY);
+        }
         ctx.stroke();
 
         ctx.fillStyle = '#0a66c2';
@@ -209,7 +212,7 @@
           ctx.fillStyle = 'red';
           ctx.fill();
           ctx.fillStyle = '#000';
-          ctx.fillText('34.5 kV', x - 25, y - 8);
+          // removed 34.5 kV label
 
           // connection to padmount
           ctx.beginPath();
@@ -227,7 +230,7 @@
           ctx.fillStyle = 'blue';
           ctx.fill();
           ctx.fillStyle = '#000';
-          ctx.fillText('LV bus', x + 60, y + 15);
+          // removed LV bus label
 
           ctx.beginPath();
           ctx.moveTo(x + 50, y + 10);
