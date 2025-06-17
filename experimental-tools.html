@@ -231,6 +231,17 @@
 
           ctx.beginPath();
           ctx.moveTo(x + 50, y + 10);
+          ctx.lineTo(x + 50, y + 20);
+          ctx.stroke();
+
+          // draw cable between padmount and LV bus
+          ctx.beginPath();
+          ctx.moveTo(x + 50, y);
+          ctx.lineTo(x + 50, y + 10);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(x + 50, y + 20);
           ctx.lineTo(x + 50, y + 30);
           ctx.stroke();
 
