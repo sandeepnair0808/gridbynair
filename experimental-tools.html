@@ -100,7 +100,7 @@
     <button onclick="exportCSV()">Export as CSV</button>
 
     <div class="output" id="collectorOutput">Awaiting input...</div>
-    <canvas id="schematicCanvas" width="1000" height="800"></canvas>
+    <canvas id="schematicCanvas" width="1000" height="1000"></canvas>
   </main>
 
   <script>
@@ -124,7 +124,7 @@
 
       const feeders = Math.ceil(total / perFeeder);
       let layout = `🌞 Solar Farm Layout\n-----------------------\nTotal Inverters: ${total}\nInverters/Feeder: ${perFeeder}\nTotal Feeders: ${feeders}\nFeeder Voltage: ${voltage || 'N/A'} kV\nFeeder Impedance: ${impedance || 'N/A'} pu\nCapacitor/Feeder: ${capacitor || 0} kVAR`;
-      layout += '\n\n📐 Feeder Configuration:';
+      layout += '\n\n🖐 Feeder Configuration:';
 
       parsedLayout = [];
       let inverterIndex = 1;
@@ -132,7 +132,7 @@
         layout += `\n\nFeeder ${f} → Main Collector Bus`;
         for (let i = 0; i < perFeeder && inverterIndex <= total; i++) {
           layout += `\n  ↳ Inverter ${inverterIndex}`;
-          parsedLayout.push({ feeder: f, inverter: inverterIndex, capacitor: (i === 0 && capacitor) ? capacitor : 0, voltage, impedance });
+          parsedLayout.push({ feeder: f, inverter: inverterIndex, capacitor: capacitor || 0, voltage, impedance });
           inverterIndex++;
         }
       }
@@ -147,53 +147,49 @@
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const busX = canvas.width / 2;
+      // Main horizontal bus
       ctx.fillStyle = '#000';
-      ctx.fillRect(busX - 40, 20, 80, 8);
-      ctx.fillText("Main Collector Bus", busX - 50, 15);
+      ctx.fillRect(50, 40, canvas.width - 100, 8);
+      ctx.fillText("Main Collector Bus", canvas.width / 2 - 50, 30);
 
-      const feeders = [...new Set(layout.map(x => x.feeder))];
-      const spacingY = 80;
+      const spacingX = (canvas.width - 100) / layout.length;
+      layout.forEach((inv, index) => {
+        const x = 50 + index * spacingX + spacingX / 2;
+        const yBus = 48;
+        const yPad = 100;
+        const yInv = 150;
 
-      feeders.forEach((feeder, i) => {
-        const yStart = 40 + i * spacingY;
-        const feederX = busX - 200 + i * 80;
-
+        // Line from bus to padmount
         ctx.beginPath();
-        ctx.moveTo(busX, 28);
-        ctx.lineTo(feederX, yStart);
+        ctx.moveTo(x, yBus);
+        ctx.lineTo(x, yPad);
         ctx.stroke();
 
-        ctx.fillStyle = '#0a66c2';
-        ctx.fillText(`Feeder ${feeder}`, feederX - 20, yStart - 10);
-
-        // Draw padmount
+        // Padmount
         ctx.fillStyle = '#888';
-        ctx.fillRect(feederX - 10, yStart + 5, 20, 20);
-        ctx.strokeRect(feederX - 10, yStart + 5, 20, 20);
+        ctx.fillRect(x - 10, yPad, 20, 20);
+        ctx.strokeRect(x - 10, yPad, 20, 20);
         ctx.fillStyle = '#000';
-        ctx.fillText("Padmount", feederX - 25, yStart + 40);
+        ctx.fillText("Pad", x - 12, yPad + 35);
 
-        const feederInverters = layout.filter(x => x.feeder === feeder);
-        feederInverters.forEach((inv, j) => {
-          const y = yStart + 60 + j * 40;
-          ctx.beginPath();
-          ctx.moveTo(feederX, yStart + 25);
-          ctx.lineTo(feederX, y);
-          ctx.stroke();
+        // Line to inverter
+        ctx.beginPath();
+        ctx.moveTo(x, yPad + 20);
+        ctx.lineTo(x, yInv);
+        ctx.stroke();
 
-          ctx.fillStyle = '#34a853';
-          ctx.fillRect(feederX - 15, y - 10, 30, 20);
-          ctx.strokeRect(feederX - 15, y - 10, 30, 20);
+        // Inverter
+        ctx.fillStyle = '#34a853';
+        ctx.fillRect(x - 15, yInv, 30, 20);
+        ctx.strokeRect(x - 15, yInv, 30, 20);
 
-          ctx.fillStyle = '#000';
-          ctx.fillText(`I${inv.inverter}`, feederX + 20, y + 5);
+        ctx.fillStyle = '#000';
+        ctx.fillText(`I${inv.inverter}`, x - 10, yInv + 35);
 
-          if (inv.capacitor) {
-            ctx.fillStyle = '#ff9800';
-            ctx.fillText(`+${inv.capacitor}kVAR`, feederX + 20, y + 20);
-          }
-        });
+        if (inv.capacitor) {
+          ctx.fillStyle = '#ff9800';
+          ctx.fillText(`+${inv.capacitor}kVAR`, x - 20, yInv + 50);
+        }
       });
     }
 
