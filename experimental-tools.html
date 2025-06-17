@@ -153,8 +153,10 @@
       parsedLayout = [];
       let invIndex = 1;
       feederConfig.forEach((count, i) => {
-        for (let j = 0; j < count; j++) {
-          parsedLayout.push({feeder: i+1, inverter: invIndex++, capacitor: 0, voltage, impedance});
+        const feederLabel = `${10 + i}${i % 2 === 0 ? 'A' : 'B'}`;
+        for (let j = 1; j <= count; j++) {
+          const inverterName = `${feederLabel}${String(j).padStart(2, '0')}`;
+          parsedLayout.push({ feeder: feederLabel, inverter: inverterName, capacitor: 0, voltage, impedance });
         }
       });
 
@@ -254,7 +256,7 @@
           ctx.strokeRect(x + 35, y + 30, 30, 20);
 
           ctx.fillStyle = '#000';
-          ctx.fillText(`I${layout[invIndex++]?.inverter}`, x + 35, y + 65);
+          ctx.fillText(`${layout[invIndex++]?.inverter}`, x + 35, y + 65);
 
           if (lvLoad) {
             ctx.fillStyle = '#e91e63';
