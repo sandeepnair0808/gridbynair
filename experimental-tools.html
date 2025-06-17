@@ -226,42 +226,42 @@
 
           // LV bus marker
           ctx.beginPath();
-          ctx.arc(x + 50, y + 10, 4, 0, 2 * Math.PI);
+          ctx.arc(x + 60, y + 10, 4, 0, 2 * Math.PI);
           ctx.fillStyle = 'blue';
           ctx.fill();
           ctx.fillStyle = '#000';
           // removed LV bus label
 
           ctx.beginPath();
-          ctx.moveTo(x + 50, y + 10);
-          ctx.lineTo(x + 50, y + 20);
+          ctx.moveTo(x + 60, y + 10);
+          ctx.lineTo(x + 60, y + 20);
           ctx.stroke();
 
           // draw cable between padmount and LV bus
           ctx.beginPath();
-          ctx.moveTo(x + 50, y);
-          ctx.lineTo(x + 50, y + 10);
+          ctx.moveTo(x + 60, y);
+          ctx.lineTo(x + 60, y + 10);
           ctx.stroke();
 
           ctx.beginPath();
-          ctx.moveTo(x + 50, y + 20);
-          ctx.lineTo(x + 50, y + 30);
+          ctx.moveTo(x + 60, y + 20);
+          ctx.lineTo(x + 60, y + 30);
           ctx.stroke();
 
           ctx.fillStyle = '#34a853';
-          ctx.fillRect(x + 35, y + 30, 30, 20);
-          ctx.strokeRect(x + 35, y + 30, 30, 20);
+          ctx.fillRect(x + 45, y + 30, 30, 20);
+          ctx.strokeRect(x + 45, y + 30, 30, 20);
 
           ctx.fillStyle = '#000';
-          ctx.fillText(`I${layout[invIndex++].inverter}`, x + 30, y + 65);
+          ctx.fillText(`I${layout[invIndex++]?.inverter}`, x + 45, y + 65);
 
           if (lvLoad) {
             ctx.fillStyle = '#e91e63';
             ctx.beginPath();
-            ctx.moveTo(x + 50, y + 50);
-            ctx.lineTo(x + 70, y + 70);
+            ctx.moveTo(x + 60, y + 50);
+            ctx.lineTo(x + 80, y + 70);
             ctx.stroke();
-            ctx.fillText("LV Load", x + 60, y + 85);
+            ctx.fillText("LV Load", x + 80, y + 85);
           }
         }
 
