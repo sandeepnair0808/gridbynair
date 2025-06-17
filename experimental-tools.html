@@ -75,7 +75,7 @@
 <body>
   <header>
     <h1>⚡ Solar Farm Collector Designer</h1>
-    <p>Feeder layout with spaced padmount-inverter units and precise feeder terminations</p>
+    <p>Feeder layout with bus markers at 34.5kV and LV nodes</p>
   </header>
   <main>
     <label>Total Number of Inverters</label>
@@ -203,6 +203,15 @@
         for (let i = 0; i < count; i++) {
           const y = busStartY + i * unitSpacingY;
 
+          // draw 34.5kV red bus marker
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, 2 * Math.PI);
+          ctx.fillStyle = 'red';
+          ctx.fill();
+          ctx.fillStyle = '#000';
+          ctx.fillText('34.5 kV', x - 25, y - 8);
+
+          // connection to padmount
           ctx.beginPath();
           ctx.moveTo(x, y);
           ctx.lineTo(x + 40, y);
@@ -211,6 +220,14 @@
           ctx.fillStyle = '#888';
           ctx.fillRect(x + 40, y - 10, 20, 20);
           ctx.strokeRect(x + 40, y - 10, 20, 20);
+
+          // LV bus marker
+          ctx.beginPath();
+          ctx.arc(x + 50, y + 10, 4, 0, 2 * Math.PI);
+          ctx.fillStyle = 'blue';
+          ctx.fill();
+          ctx.fillStyle = '#000';
+          ctx.fillText('LV bus', x + 60, y + 15);
 
           ctx.beginPath();
           ctx.moveTo(x + 50, y + 10);
