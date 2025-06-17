@@ -75,7 +75,7 @@
 <body>
   <header>
     <h1>⚡ Solar Farm Collector Designer</h1>
-    <p>Feeder-root layout with padmount, inverter, and optional load symbols</p>
+    <p>Each feeder has a dedicated vertical bus, with 1:1 padmount-inverter</p>
   </header>
   <main>
     <label>Total Number of Inverters</label>
@@ -100,11 +100,11 @@
     <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01">
 
     <div class="checkbox-row">
-      <input type="checkbox" id="lvLoad" name="lvLoad">
+      <input type="checkbox" id="lvLoad">
       <label for="lvLoad">Add Load on LV side</label>
     </div>
     <div class="checkbox-row">
-      <input type="checkbox" id="mvLoad" name="mvLoad">
+      <input type="checkbox" id="mvLoad">
       <label for="mvLoad">Add Load on MV side</label>
     </div>
 
@@ -113,7 +113,7 @@
     <button onclick="exportPNG()">Export PNG</button>
 
     <div class="output" id="collectorOutput">Awaiting input...</div>
-    <canvas id="schematicCanvas" width="1200" height="1000"></canvas>
+    <canvas id="schematicCanvas" width="1600" height="1200"></canvas>
   </main>
 
   <script>
@@ -130,10 +130,7 @@
       const lvLoad = document.getElementById('lvLoad').checked;
       const mvLoad = document.getElementById('mvLoad').checked;
 
-      if (!total || total <= 0) {
-        alert('Enter total inverters');
-        return;
-      }
+      if (!total || total <= 0) return alert('Enter total inverters');
 
       let feederConfig = [];
       let remaining = total;
@@ -161,89 +158,93 @@
         }
       });
 
-      let out = `🌞 Total Inverters: ${total}\nFeeders: ${feederConfig.length}\nCapacitor Bank: ${capacitor || 0} kVAR\n`;      
-      feederConfig.forEach((n, i) => {
-        out += `\nFeeder ${i+1} → ${n} inverters`;
-      });
-      document.getElementById('collectorOutput').textContent = out;
-      drawFeederRoot(parsedLayout, feederConfig, capacitor, lvLoad, mvLoad);
+      document.getElementById('collectorOutput').textContent = `🌞 Total Inverters: ${total}\nFeeders: ${feederConfig.length}\nCapacitor Bank: ${capacitor || 0} kVAR\n` + feederConfig.map((n, i) => `Feeder ${i+1} → ${n} inverters`).join("\n");
+      drawStructuredLayout(parsedLayout, feederConfig, capacitor, lvLoad, mvLoad);
     }
 
-    function drawFeederRoot(layout, feederConfig, capacitor, lvLoad, mvLoad) {
+    function drawStructuredLayout(layout, feederConfig, capacitor, lvLoad, mvLoad) {
       const canvas = document.getElementById('schematicCanvas');
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const spacing = canvas.width / (feederConfig.length + 1);
-      const busY = 50;
-
+      const topBusY = 50;
       ctx.fillStyle = '#000';
-      ctx.fillRect(50, busY, canvas.width - 100, 8);
-      ctx.fillText("Main Collector Bus", canvas.width / 2 - 50, busY - 10);
+      ctx.fillRect(50, topBusY, canvas.width - 100, 8);
+      ctx.fillText("Main Collector Bus", canvas.width/2 - 50, topBusY - 10);
 
       if (capacitor > 0) {
         ctx.fillStyle = '#ff9800';
-        ctx.fillRect(canvas.width / 2 - 15, busY + 25, 30, 20);
-        ctx.strokeRect(canvas.width / 2 - 15, busY + 25, 30, 20);
+        ctx.fillRect(canvas.width/2 - 15, topBusY + 25, 30, 20);
+        ctx.strokeRect(canvas.width/2 - 15, topBusY + 25, 30, 20);
         ctx.fillStyle = '#000';
-        ctx.fillText(`${capacitor} kVAR`, canvas.width / 2 - 30, busY + 60);
+        ctx.fillText(`${capacitor} kVAR`, canvas.width/2 - 30, topBusY + 60);
         ctx.beginPath();
-        ctx.moveTo(canvas.width / 2, busY + 8);
-        ctx.lineTo(canvas.width / 2, busY + 25);
+        ctx.moveTo(canvas.width/2, topBusY + 8);
+        ctx.lineTo(canvas.width/2, topBusY + 25);
         ctx.stroke();
       }
 
       let invIndex = 0;
-      feederConfig.forEach((count, fIndex) => {
-        const x = spacing * (fIndex + 1);
-        const rootY = busY + 8;
-        const busLength = 60;
+      feederConfig.forEach((count, fIdx) => {
+        const x = spacing * (fIdx + 1);
+        const busStartY = topBusY + 80;
+        const busHeight = count * 60 + 20;
 
         ctx.beginPath();
-        ctx.moveTo(x, rootY);
-        ctx.lineTo(x, rootY + busLength);
+        ctx.moveTo(x, topBusY + 8);
+        ctx.lineTo(x, busStartY);
+        ctx.stroke();
+        ctx.fillStyle = '#0a66c2';
+        ctx.fillText(`Feeder ${fIdx + 1}`, x - 30, busStartY + 15);
+
+        // draw feeder bus
+        ctx.beginPath();
+        ctx.moveTo(x, busStartY);
+        ctx.lineTo(x, busStartY + busHeight);
         ctx.stroke();
 
-        ctx.fillStyle = '#0a66c2';
-        ctx.fillText(`Feeder ${fIndex+1}`, x - 30, rootY + busLength + 15);
-
         for (let i = 0; i < count; i++) {
-          const offsetX = (i % 2 === 0 ? -25 : 25);
-          const baseY = rootY + busLength + 20 + i * 60;
+          const y = busStartY + 20 + i * 60;
 
           ctx.beginPath();
-          ctx.moveTo(x, rootY + busLength);
-          ctx.lineTo(x + offsetX, baseY);
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + 40, y);
           ctx.stroke();
 
           ctx.fillStyle = '#888';
-          ctx.fillRect(x + offsetX - 10, baseY, 20, 20);
-          ctx.strokeRect(x + offsetX - 10, baseY, 20, 20);
+          ctx.fillRect(x + 40, y - 10, 20, 20);
+          ctx.strokeRect(x + 40, y - 10, 20, 20);
+
+          ctx.beginPath();
+          ctx.moveTo(x + 50, y + 10);
+          ctx.lineTo(x + 50, y + 30);
+          ctx.stroke();
 
           ctx.fillStyle = '#34a853';
-          ctx.fillRect(x + offsetX - 15, baseY + 30, 30, 20);
-          ctx.strokeRect(x + offsetX - 15, baseY + 30, 30, 20);
+          ctx.fillRect(x + 35, y + 30, 30, 20);
+          ctx.strokeRect(x + 35, y + 30, 30, 20);
 
           ctx.fillStyle = '#000';
-          ctx.fillText(`I${layout[invIndex++].inverter}`, x + offsetX - 10, baseY + 65);
+          ctx.fillText(`I${layout[invIndex++].inverter}`, x + 30, y + 65);
 
           if (lvLoad) {
             ctx.fillStyle = '#e91e63';
             ctx.beginPath();
-            ctx.moveTo(x + offsetX, baseY + 50);
-            ctx.lineTo(x + offsetX + 20, baseY + 70);
+            ctx.moveTo(x + 50, y + 50);
+            ctx.lineTo(x + 70, y + 70);
             ctx.stroke();
-            ctx.fillText("LV Load", x + offsetX + 5, baseY + 85);
+            ctx.fillText("LV Load", x + 60, y + 85);
           }
+        }
 
-          if (mvLoad && i === 0) {
-            ctx.fillStyle = '#3f51b5';
-            ctx.beginPath();
-            ctx.moveTo(x, rootY + busLength);
-            ctx.lineTo(x - 20, rootY + busLength + 20);
-            ctx.stroke();
-            ctx.fillText("MV Load", x - 55, rootY + busLength + 30);
-          }
+        if (mvLoad) {
+          ctx.fillStyle = '#3f51b5';
+          ctx.beginPath();
+          ctx.moveTo(x, busStartY);
+          ctx.lineTo(x - 25, busStartY + 25);
+          ctx.stroke();
+          ctx.fillText("MV Load", x - 65, busStartY + 35);
         }
       });
     }
