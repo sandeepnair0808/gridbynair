@@ -111,5 +111,84 @@
     <div class="output" id="collectorOutput">Awaiting input...</div>
     <canvas id="schematicCanvas" width="1600" height="1200"></canvas>
   </main>
+<script>
+let parsedLayout = [];
+
+function generateCollector() {
+  const total = parseInt(document.getElementById('total').value);
+  const perFeeder = parseInt(document.getElementById('perFeeder').value);
+  const minFeeder = parseInt(document.getElementById('minFeeder').value);
+  const customFeeder = document.getElementById('customFeeder').value.trim();
+  const capacitor = parseInt(document.getElementById('capacitor').value);
+  const voltage = parseFloat(document.getElementById('voltage').value);
+  const impedance = parseFloat(document.getElementById('impedance').value);
+  const lvLoad = document.getElementById('lvLoad').checked;
+
+  if (!total || total <= 0) return alert('Enter total inverters');
+
+  let feederConfig = [];
+  let remaining = total;
+  if (customFeeder) {
+    feederConfig = customFeeder.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    remaining -= feederConfig.reduce((a,b)=>a+b,0);
+    while (remaining > 0) {
+      const add = Math.min(minFeeder || 1, remaining);
+      feederConfig.push(add);
+      remaining -= add;
+    }
+  } else {
+    while (remaining > 0) {
+      const count = Math.min(perFeeder || total, remaining);
+      feederConfig.push(count);
+      remaining -= count;
+    }
+  }
+
+  parsedLayout = [];
+  let invIndex = 1;
+  feederConfig.forEach((count, i) => {
+    for (let j = 0; j < count; j++) {
+      parsedLayout.push({feeder: i+1, inverter: invIndex++, capacitor: 0, voltage, impedance});
+    }
+  });
+
+  document.getElementById('collectorOutput').textContent = `🌞 Total Inverters: ${total}
+Feeders: ${feederConfig.length}
+Capacitor Bank: ${capacitor || 0} kVAR
+` + feederConfig.map((n, i) => `Feeder ${i+1} → ${n} inverters`).join("
+");
+  drawPlaceholder();
+}
+
+function drawPlaceholder() {
+  const canvas = document.getElementById('schematicCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#ccc';
+  ctx.font = '16px Inter';
+  ctx.fillText('Schematic preview will appear here after input is generated.', 100, 100);
+}
+
+function exportCSV() {
+  if (!parsedLayout.length) return;
+  const header = 'Feeder,Inverter,Capacitor_kVAR,Voltage_kV,Impedance_pu
+';
+  const rows = parsedLayout.map(r => `${r.feeder},${r.inverter},${r.capacitor},${r.voltage},${r.impedance}`).join('
+');
+  const blob = new Blob([header + rows], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'collector_layout.csv';
+  a.click();
+}
+
+function exportPNG() {
+  const canvas = document.getElementById('schematicCanvas');
+  const link = document.createElement('a');
+  link.download = 'solar_farm_schematic.png';
+  link.href = canvas.toDataURL();
+  link.click();
+}
+</script>
 </body>
 </html>
