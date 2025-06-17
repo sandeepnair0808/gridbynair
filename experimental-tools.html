@@ -1,33 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Experimental Tools – Solar Farm Designer</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solar Farm Collector Designer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     body {
-      margin: 0;
       font-family: 'Inter', sans-serif;
+      margin: 0;
       background: linear-gradient(135deg, #f4faff, #ffffff);
       color: #222;
     }
     header {
       background: #0a66c2;
       color: white;
-      padding: 20px;
       text-align: center;
+      padding: 20px;
     }
     main {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 40px auto;
       background: #fff;
       padding: 30px;
       border-radius: 12px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-    }
-    h1, h2 {
-      margin-top: 0;
     }
     label {
       display: block;
@@ -35,82 +32,76 @@
       font-weight: 600;
     }
     input, textarea {
-      padding: 10px;
       width: 100%;
       max-width: 300px;
-      font-size: 1rem;
-      border-radius: 6px;
+      padding: 10px;
       border: 1px solid #ccc;
-    }
-    textarea {
-      resize: vertical;
+      border-radius: 6px;
+      font-size: 1rem;
     }
     button {
-      margin-top: 24px;
-      padding: 12px 20px;
-      font-size: 1rem;
-      background-color: #0a66c2;
+      margin-top: 20px;
+      padding: 10px 16px;
+      background: #0a66c2;
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      transition: background 0.3s ease;
     }
     button:hover {
-      background-color: #004a99;
+      background: #004a99;
     }
     .output {
-      margin-top: 30px;
       background: #f3f8ff;
       padding: 20px;
-      border-radius: 10px;
+      margin-top: 20px;
+      border-radius: 8px;
       font-family: monospace;
       white-space: pre-wrap;
     }
     canvas {
       width: 100%;
-      max-width: 100%;
+      max-width: 1000px;
       height: auto;
+      margin-top: 20px;
       background: #fff;
       border: 1px solid #ccc;
-      margin-top: 20px;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>⚡ Solar Farm Collector Designer (Experimental)</h1>
-    <p>Auto-generate inverter collector system for SC and reactive studies</p>
+    <h1>⚡ Solar Farm Collector Designer</h1>
+    <p>Feeder-root layout with single capacitor at main bus</p>
   </header>
   <main>
-    <h2>Design Parameters</h2>
-    <label for="total">Total Number of Inverters</label>
-    <input type="number" id="total" placeholder="e.g., 64" />
+    <label>Total Number of Inverters</label>
+    <input type="number" id="total" placeholder="e.g., 64">
 
-    <label for="perFeeder">Default Inverters per Feeder (optional)</label>
-    <input type="number" id="perFeeder" placeholder="e.g., 8" />
+    <label>Default Inverters per Feeder</label>
+    <input type="number" id="perFeeder" placeholder="e.g., 8">
 
-    <label for="minFeeder">Minimum Inverters per Feeder (optional)</label>
-    <input type="number" id="minFeeder" placeholder="e.g., 5" />
+    <label>Minimum Inverters per Feeder</label>
+    <input type="number" id="minFeeder" placeholder="e.g., 4">
 
-    <label for="customFeeder">Custom Feeder Counts (comma-separated, optional)</label>
-    <textarea id="customFeeder" placeholder="e.g., 5,8,7"></textarea>
+    <label>Custom Feeder Configuration (comma-separated)</label>
+    <textarea id="customFeeder" placeholder="e.g., 5,10,7"></textarea>
 
-    <label for="capacitor">Capacitor Bank (kVAR) [Single unit connected to main bus]</label>
-    <input type="number" id="capacitor" placeholder="e.g., 1000" />
+    <label>Capacitor Bank (kVAR)</label>
+    <input type="number" id="capacitor" placeholder="e.g., 500">
 
-    <label for="voltage">Feeder Voltage Level (kV)</label>
-    <input type="number" id="voltage" placeholder="e.g., 33" />
+    <label>Voltage (kV)</label>
+    <input type="number" id="voltage" placeholder="e.g., 33">
 
-    <label for="impedance">Feeder Impedance (Z pu)</label>
-    <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01" />
+    <label>Impedance (Z pu)</label>
+    <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01">
 
     <button onclick="generateCollector()">Generate Collector Layout</button>
-    <button onclick="exportCSV()">Export as CSV</button>
-    <button onclick="exportPNG()">Export as PNG</button>
+    <button onclick="exportCSV()">Export CSV</button>
+    <button onclick="exportPNG()">Export PNG</button>
 
     <div class="output" id="collectorOutput">Awaiting input...</div>
-    <canvas id="schematicCanvas" width="1000" height="1000"></canvas>
+    <canvas id="schematicCanvas" width="1200" height="900"></canvas>
   </main>
 
   <script>
@@ -120,116 +111,105 @@
       const total = parseInt(document.getElementById('total').value);
       const perFeeder = parseInt(document.getElementById('perFeeder').value);
       const minFeeder = parseInt(document.getElementById('minFeeder').value);
-      const customFeederInput = document.getElementById('customFeeder').value;
-      const customFeederArray = customFeederInput ? customFeederInput.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : [];
+      const customFeeder = document.getElementById('customFeeder').value.trim();
       const capacitor = parseInt(document.getElementById('capacitor').value);
       const voltage = parseFloat(document.getElementById('voltage').value);
       const impedance = parseFloat(document.getElementById('impedance').value);
-      const output = document.getElementById('collectorOutput');
-      const canvas = document.getElementById('schematicCanvas');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (!total || total <= 0) {
-        output.textContent = '⚠️ Please enter a valid total inverter count.';
+        alert('Enter total inverters');
         return;
       }
 
       let feederConfig = [];
       let remaining = total;
-
-      if (customFeederArray.length) {
-        for (let val of customFeederArray) {
-          if (remaining <= 0) break;
-          feederConfig.push(Math.min(val, remaining));
-          remaining -= val;
-        }
+      if (customFeeder) {
+        feederConfig = customFeeder.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+        remaining -= feederConfig.reduce((a,b)=>a+b,0);
         while (remaining > 0) {
-          const toAdd = Math.max(minFeeder || 1, 1);
-          feederConfig.push(Math.min(toAdd, remaining));
-          remaining -= toAdd;
-        }
-      } else if (perFeeder > 0) {
-        while (remaining > 0) {
-          feederConfig.push(Math.min(perFeeder, remaining));
-          remaining -= perFeeder;
+          const add = Math.min(minFeeder || 1, remaining);
+          feederConfig.push(add);
+          remaining -= add;
         }
       } else {
-        output.textContent = '⚠️ Please specify either per feeder count or custom configuration.';
-        return;
+        while (remaining > 0) {
+          const count = Math.min(perFeeder || total, remaining);
+          feederConfig.push(count);
+          remaining -= count;
+        }
       }
 
       parsedLayout = [];
-      let inverterIndex = 1;
-      let layout = `🌞 Solar Farm Layout\n-----------------------\nTotal Inverters: ${total}\nFeeder Voltage: ${voltage || 'N/A'} kV\nFeeder Impedance: ${impedance || 'N/A'} pu\nCapacitor Bank at Main Bus: ${capacitor || 0} kVAR`;
-      layout += `\nTotal Feeders: ${feederConfig.length}`;
-      layout += '\n\n🖐 Feeder Configuration:';
-
-      feederConfig.forEach((count, f) => {
-        layout += `\n\nFeeder ${f + 1} → Main Collector Bus`;
-        for (let i = 0; i < count && inverterIndex <= total; i++) {
-          layout += `\n  ↳ Inverter ${inverterIndex}`;
-          parsedLayout.push({ feeder: f + 1, inverter: inverterIndex, capacitor: 0, voltage, impedance });
-          inverterIndex++;
+      let invIndex = 1;
+      feederConfig.forEach((count, i) => {
+        for (let j = 0; j < count; j++) {
+          parsedLayout.push({feeder: i+1, inverter: invIndex++, capacitor: 0, voltage, impedance});
         }
-        layout += `\n  ⏺ Inverters: ${count}`;
       });
 
-      layout += '\n\n✅ Ready for SC/Reactive studies export.';
-      output.textContent = layout;
-      drawSchematic(parsedLayout, capacitor);
+      let out = `🌞 Total Inverters: ${total}\nFeeders: ${feederConfig.length}\nCapacitor Bank: ${capacitor || 0} kVAR\n`;      
+      feederConfig.forEach((n, i) => {
+        out += `\nFeeder ${i+1} → ${n} inverters`;
+      });
+      document.getElementById('collectorOutput').textContent = out;
+      drawFeederRoot(parsedLayout, feederConfig, capacitor);
     }
 
-    function drawSchematic(layout, capacitor) {
+    function drawFeederRoot(layout, feederConfig, capacitor) {
       const canvas = document.getElementById('schematicCanvas');
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      const rootCount = feederConfig.length;
+      const spacing = canvas.width / (rootCount + 1);
+      const busY = 40;
+
       ctx.fillStyle = '#000';
-      ctx.fillRect(50, 40, canvas.width - 100, 8);
-      ctx.fillText("Main Collector Bus", canvas.width / 2 - 50, 30);
+      ctx.fillRect(50, busY, canvas.width - 100, 8);
+      ctx.fillText("Main Collector Bus", canvas.width/2 - 50, busY - 10);
 
       if (capacitor > 0) {
         ctx.fillStyle = '#ff9800';
-        ctx.fillRect(canvas.width / 2 - 15, 60, 30, 20);
-        ctx.strokeRect(canvas.width / 2 - 15, 60, 30, 20);
+        ctx.fillRect(canvas.width/2 - 15, busY + 20, 30, 20);
+        ctx.strokeRect(canvas.width/2 - 15, busY + 20, 30, 20);
         ctx.fillStyle = '#000';
-        ctx.fillText(`${capacitor} kVAR`, canvas.width / 2 - 30, 95);
+        ctx.fillText(`${capacitor} kVAR`, canvas.width/2 - 30, busY + 60);
         ctx.beginPath();
-        ctx.moveTo(canvas.width / 2, 48);
-        ctx.lineTo(canvas.width / 2, 60);
+        ctx.moveTo(canvas.width/2, busY + 8);
+        ctx.lineTo(canvas.width/2, busY + 20);
         ctx.stroke();
       }
 
-      const spacingX = (canvas.width - 100) / layout.length;
-      layout.forEach((inv, index) => {
-        const x = 50 + index * spacingX + spacingX / 2;
-        const yBus = 48;
-        const yPad = 130;
-        const yInv = 180;
-
+      let invIndex = 0;
+      feederConfig.forEach((count, fIndex) => {
+        const x = spacing * (fIndex + 1);
+        const rootY = busY + 8;
         ctx.beginPath();
-        ctx.moveTo(x, yBus);
-        ctx.lineTo(x, yPad);
+        ctx.moveTo(x, rootY);
+        ctx.lineTo(x, rootY + 30);
         ctx.stroke();
 
-        ctx.fillStyle = '#888';
-        ctx.fillRect(x - 10, yPad, 20, 20);
-        ctx.strokeRect(x - 10, yPad, 20, 20);
-        ctx.fillStyle = '#000';
-        ctx.fillText("Pad", x - 12, yPad + 35);
+        ctx.fillStyle = '#0a66c2';
+        ctx.fillText(`Feeder ${fIndex+1}`, x - 25, rootY + 50);
 
-        ctx.beginPath();
-        ctx.moveTo(x, yPad + 20);
-        ctx.lineTo(x, yInv);
-        ctx.stroke();
+        for (let i = 0; i < count; i++) {
+          const y = rootY + 70 + i * 50;
+          ctx.beginPath();
+          ctx.moveTo(x, rootY + 30);
+          ctx.lineTo(x, y);
+          ctx.stroke();
 
-        ctx.fillStyle = '#34a853';
-        ctx.fillRect(x - 15, yInv, 30, 20);
-        ctx.strokeRect(x - 15, yInv, 30, 20);
+          ctx.fillStyle = '#888';
+          ctx.fillRect(x - 10, y, 20, 20);
+          ctx.strokeRect(x - 10, y, 20, 20);
 
-        ctx.fillStyle = '#000';
-        ctx.fillText(`I${inv.inverter}`, x - 10, yInv + 35);
+          ctx.fillStyle = '#34a853';
+          ctx.fillRect(x - 15, y + 30, 30, 20);
+          ctx.strokeRect(x - 15, y + 30, 30, 20);
+
+          ctx.fillStyle = '#000';
+          ctx.fillText(`I${layout[invIndex++].inverter}`, x - 10, y + 65);
+        }
       });
     }
 
@@ -238,10 +218,9 @@
       const header = 'Feeder,Inverter,Capacitor_kVAR,Voltage_kV,Impedance_pu\n';
       const rows = parsedLayout.map(r => `${r.feeder},${r.inverter},${r.capacitor},${r.voltage},${r.impedance}`).join('\n');
       const blob = new Blob([header + rows], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'solar_collector_layout.csv';
+      a.href = URL.createObjectURL(blob);
+      a.download = 'collector_layout.csv';
       a.click();
     }
 
@@ -249,7 +228,7 @@
       const canvas = document.getElementById('schematicCanvas');
       const link = document.createElement('a');
       link.download = 'solar_farm_schematic.png';
-      link.href = canvas.toDataURL('image/png');
+      link.href = canvas.toDataURL();
       link.click();
     }
   </script>
