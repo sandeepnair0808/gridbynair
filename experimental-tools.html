@@ -75,7 +75,7 @@
 <body>
   <header>
     <h1>⚡ Solar Farm Collector Designer</h1>
-    <p>Feeder layout with bus markers at 34.5kV and LV nodes</p>
+    <p>Feeder layout with sub-MV bus, pad-mounts, LV connections, loads, and capacitor banks</p>
   </header>
   <main>
     <label>Total Number of Inverters</label>
@@ -157,9 +157,10 @@ function generateCollector() {
       parsedLayout.push({
         feeder: i+1,
         inverter: invIndex++,
-        capacitor: 0,
+        capacitor: capacitor || 0,
         voltage,
-        impedance
+        impedance,
+        hasLoad: lvLoad
       });
     }
   });
@@ -171,62 +172,87 @@ function generateCollector() {
     feederConfig.map((n, i) => `Feeder ${i + 1} → ${n} inverters`).join("\n");
 
   document.getElementById('collectorOutput').textContent = outputText;
-
-  drawSchematic();
+  drawFullSchematic(feederConfig);
 }
 
-function drawSchematic() {
+function drawFullSchematic(feederConfig) {
   const canvas = document.getElementById('schematicCanvas');
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const feederSpacing = 200;
-  const inverterSpacing = 60;
-  const startX = 100;
-  const startY = 100;
+  const mainBusY = 80;
+  const mainBusX = 100;
+  const busLength = 1200;
+  const feederStartX = mainBusX + 80;
+  const invSpacing = 60;
 
-  const feeders = [...new Set(parsedLayout.map(d => d.feeder))];
+  ctx.strokeStyle = '#0a66c2';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(mainBusX, mainBusY);
+  ctx.lineTo(mainBusX + busLength, mainBusY);
+  ctx.stroke();
 
-  ctx.font = '16px Inter';
-  ctx.fillStyle = '#333';
+  let feederX = feederStartX;
+  let invIndex = 1;
+  feederConfig.forEach((invCount, fIdx) => {
+    const feederMid = feederX + (invCount * invSpacing) / 2;
 
-  feeders.forEach((feederNum, idx) => {
-    const x = startX;
-    const y = startY + idx * feederSpacing;
-
-    // Draw main feeder bus
-    ctx.strokeStyle = '#0a66c2';
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + 500, y);
+    ctx.moveTo(feederMid, mainBusY);
+    ctx.lineTo(feederMid, mainBusY + 40);
     ctx.stroke();
 
-    ctx.fillStyle = '#000';
-    ctx.fillText(`Feeder ${feederNum}`, x, y - 10);
+    const feederBusY = mainBusY + 40;
+    ctx.strokeStyle = '#0a66c2';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(feederX, feederBusY);
+    ctx.lineTo(feederX + (invCount - 1) * invSpacing, feederBusY);
+    ctx.stroke();
 
-    const inverters = parsedLayout.filter(d => d.feeder === feederNum);
-    inverters.forEach((inv, j) => {
-      const invX = x + 100 + j * inverterSpacing;
-      const invY = y + 40;
+    for (let j = 0; j < invCount; j++) {
+      const x = feederX + j * invSpacing;
+      const padY = feederBusY + 20;
+      const lvY = padY + 40;
 
-      // Draw inverter box
-      ctx.fillStyle = '#ffaa00';
-      ctx.fillRect(invX, invY, 30, 30);
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillRect(x - 10, padY, 20, 20);
 
-      // Draw connection line
-      ctx.strokeStyle = '#666';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ff9900';
       ctx.beginPath();
-      ctx.moveTo(invX + 15, invY);
-      ctx.lineTo(invX + 15, y);
+      ctx.moveTo(x, padY + 20);
+      ctx.lineTo(x, lvY);
       ctx.stroke();
 
-      // Label inverter
+      ctx.fillStyle = '#ffcc00';
+      ctx.fillRect(x - 12, lvY, 24, 24);
       ctx.fillStyle = '#000';
       ctx.font = '12px Inter';
-      ctx.fillText(`I${inv.inverter}`, invX - 2, invY + 45);
-    });
+      ctx.fillText(`I${invIndex}`, x - 10, lvY + 38);
+
+      if (parsedLayout[invIndex - 1].hasLoad) {
+        ctx.fillStyle = '#ff4444';
+        ctx.beginPath();
+        ctx.arc(x, lvY + 50, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      invIndex++;
+    }
+
+    if (parsedLayout.some(p => p.capacitor > 0 && p.feeder === fIdx + 1)) {
+      ctx.fillStyle = '#0066ff';
+      ctx.fillRect(feederMid - 8, mainBusY - 20, 16, 16);
+      ctx.fillStyle = '#000';
+      ctx.font = '10px Inter';
+      ctx.fillText('CAP', feederMid - 12, mainBusY - 25);
+    }
+
+    feederX += invCount * invSpacing + 60;
   });
 }
 
