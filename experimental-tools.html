@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Solar Farm Collector Designer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
@@ -117,7 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("generateBtn").addEventListener("click", generateCollector);
 });
 
-// Drawing logic
 let parsedLayout = [];
 
 function generateCollector() {
@@ -134,6 +133,7 @@ function generateCollector() {
 
   let feederConfig = [];
   let remaining = total;
+
   if (customFeeder) {
     feederConfig = customFeeder.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
     remaining -= feederConfig.reduce((a,b)=>a+b,0);
@@ -154,19 +154,23 @@ function generateCollector() {
   let invIndex = 1;
   feederConfig.forEach((count, i) => {
     for (let j = 0; j < count; j++) {
-      parsedLayout.push({feeder: i+1, inverter: invIndex++, capacitor: 0, voltage, impedance});
+      parsedLayout.push({
+        feeder: i+1,
+        inverter: invIndex++,
+        capacitor: 0,
+        voltage,
+        impedance
+      });
     }
   });
 
-  document.getElementById('collectorOutput').textContent =
-    `🌞 Total Inverters: ${total}
-` +
-    `Feeders: ${feederConfig.length}
-` +
-    `Capacitor Bank: ${capacitor || 0} kVAR
-` +
-    feederConfig.map((n, i) => `Feeder ${i + 1} → ${n} inverters`).join("
-");
+  const outputText =
+    `🌞 Total Inverters: ${total}\n` +
+    `Feeders: ${feederConfig.length}\n` +
+    `Capacitor Bank: ${capacitor || 0} kVAR\n` +
+    feederConfig.map((n, i) => `Feeder ${i + 1} → ${n} inverters`).join("\n");
+
+  document.getElementById('collectorOutput').textContent = outputText;
 
   drawPlaceholder();
 }
@@ -175,17 +179,15 @@ function drawPlaceholder() {
   const canvas = document.getElementById('schematicCanvas');
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#ccc';
-  ctx.font = '16px Inter';
-  ctx.fillText('Schematic preview will appear here after input is generated.', 100, 100);
+  ctx.fillStyle = '#444';
+  ctx.font = '18px Inter';
+  ctx.fillText('Schematic preview will appear here after input is generated.', 80, 80);
 }
 
 function exportCSV() {
   if (!parsedLayout.length) return;
-  const header = 'Feeder,Inverter,Capacitor_kVAR,Voltage_kV,Impedance_pu
-';
-  const rows = parsedLayout.map(r => `${r.feeder},${r.inverter},${r.capacitor},${r.voltage},${r.impedance}`).join('
-');
+  const header = 'Feeder,Inverter,Capacitor_kVAR,Voltage_kV,Impedance_pu\n';
+  const rows = parsedLayout.map(r => `${r.feeder},${r.inverter},${r.capacitor},${r.voltage},${r.impedance}`).join('\n');
   const blob = new Blob([header + rows], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
