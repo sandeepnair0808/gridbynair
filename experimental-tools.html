@@ -21,25 +21,29 @@
     }
     button:hover { background: #004a99; }
     canvas {
-      border: 1px solid #ccc;
-      margin-top: 20px;
-      width: 100%;
+      border: 1px solid #ccc; margin-top: 20px; width: 100%;
     }
   </style>
 </head>
 <body>
 <main>
   <h1>⚡ Solar Farm Collector Designer</h1>
+
   <label>Total Inverters</label>
   <input type="number" id="total" placeholder="e.g., 40" />
+
   <label>Default Inverters per Feeder</label>
   <input type="number" id="perFeeder" placeholder="e.g., 8" />
+
   <label>Custom Feeder Configuration</label>
   <textarea id="customFeeder" placeholder="e.g., 4,4,4,4"></textarea>
+
   <label>Capacitor Bank (kVAR)</label>
   <input type="number" id="capacitor" placeholder="e.g., 500" />
+
   <label>Voltage (kV)</label>
   <input type="number" id="voltage" placeholder="e.g., 33" />
+
   <label>Impedance (Z pu)</label>
   <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01" />
 
@@ -51,7 +55,7 @@
   <button onclick="exportPDF()">Export PDF</button>
   <button onclick="exportDXF()">Export DXF</button>
 
-  <canvas id="schematicCanvas" width="1800" height="2200"></canvas>
+  <canvas id="schematicCanvas" width="1800" height="2400"></canvas>
 </main>
 
 <script>
@@ -72,47 +76,30 @@ function generateCollector() {
 
   if (customFeeder) {
     feederConfig = customFeeder.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-    let sum = feederConfig.reduce((a, b) => a + b, 0);
+    let sum = feederConfig.reduce((a,b)=>a+b,0);
     if (sum > total) {
       let running = 0;
-      feederConfig = feederConfig.filter((n, i) => {
-        if (running + n <= total) {
-          running += n;
-          return true;
-        } else if (running < total) {
-          feederConfig[i] = total - running;
-          running = total;
-          return true;
-        }
+      feederConfig = feederConfig.filter((n,i)=>{
+        if (running+n<=total) { running+=n; return true; }
+        else if (running<total) { feederConfig[i]=total-running; running=total; return true; }
         return false;
       });
     } else if (sum < total) {
-      let remaining = total - sum;
-      while (remaining > 0) {
-        feederConfig.push(1);
-        remaining--;
-      }
+      let rem = total - sum;
+      while (rem>0) { feederConfig.push(1); rem--; }
     }
   } else {
-    while (remaining > 0) {
-      const count = Math.min(perFeeder || total, remaining);
-      feederConfig.push(count);
-      remaining -= count;
+    while (remaining>0) {
+      const cnt = Math.min(perFeeder||total, remaining);
+      feederConfig.push(cnt); remaining-=cnt;
     }
   }
 
   parsedLayout = [];
   let invIndex = 1;
-  feederConfig.forEach((count, i) => {
-    for (let j = 0; j < count; j++) {
-      parsedLayout.push({
-        feeder: i + 1,
-        inverter: invIndex++,
-        capacitor,
-        voltage,
-        impedance,
-        hasLoad: lvLoad
-      });
+  feederConfig.forEach((count,i)=>{
+    for(let j=0;j<count;j++){
+      parsedLayout.push({feeder:i+1,inverter:invIndex++,capacitor,voltage,impedance,hasLoad:lvLoad});
     }
   });
 
@@ -120,185 +107,123 @@ function generateCollector() {
 }
 
 function drawVerticalRootLayout(feederConfig) {
-  const canvas = document.getElementById('schematicCanvas');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const canvas = document.getElementById('schematicCanvas'),
+        ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  const startX = 100, topY = 100;
-  const verticalSpacing = 100, feederSpacing = 180, branchLength = 50;
-  const poiY = topY, gsuY = poiY + 80, mvY = gsuY + 80;
+  // Dimensions
+  const startX=100,
+        poiY=100,
+        gsuY=poiY+80,
+        mvY=gsuY+80,
+        feederSpacing=180,
+        verticalSpacing=100,
+        branchLength=50;
 
-  const legendX = 1400, legendY = 100;
-  let invCounter = 0, feederX = startX + 40;
-  let feederSummary = [];
+  // Center X
+  const midX = startX + (feederConfig.length*feederSpacing)/2;
 
-  window.exportSVG = () => {
-    const svgData = canvas.toDataURL('image/svg+xml');
-    const link = document.createElement('a');
-    link.download = 'solar_farm_schematic.svg';
-    link.href = svgData;
-    link.click();
-  };
-  window.exportPDF = () => {
-    const imgData = canvas.toDataURL('image/png');
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: [canvas.width, canvas.height] });
-    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-    pdf.save('solar_farm_schematic.pdf');
-  };
-  window.exportDXF = () => {
-    alert('DXF export not implemented. Use svg2dxf externally.');
-  };
+  // SHORTENED POI BUS LENGTH
+  const poiLen=200, poiStart=midX-poiLen/2, poiEnd=midX+poiLen/2;
 
-  const midX = startX + (feederConfig.length * feederSpacing) / 2;
+  // Export funcs
+  window.exportSVG = ()=>{const link=document.createElement('a');link.download='schematic.svg';link.href=canvas.toDataURL('image/svg+xml');link.click()};
+  window.exportPDF = ()=>{const {jsPDF}=window.jspdf,pdf=new jsPDF({orientation:'landscape',unit:'pt',format:[canvas.width,canvas.height]});pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,canvas.width,canvas.height);pdf.save('schematic.pdf')};
+  window.exportDXF = ()=>alert('DXF export not implemented. Use svg2dxf externally.');
 
-  // POI Bus and Generator
-  ctx.strokeStyle = '#222';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(startX, poiY);
-  ctx.lineTo(startX + feederSpacing * feederConfig.length, poiY);
-  ctx.stroke();
-  ctx.font = '12px Inter';
-  ctx.fillStyle = '#000';
-  ctx.fillText('POI BUS', startX, poiY - 10);
-  ctx.beginPath();
-  ctx.arc(midX, poiY - 30, 10, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillText('Generator', midX - 20, poiY - 40);
-
+  // Draw POI BUS
+  ctx.strokeStyle='#000';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(poiStart,poiY);ctx.lineTo(poiEnd,poiY);ctx.stroke();
+  ctx.fillStyle='#000';ctx.font='12px Inter';ctx.fillText('POI BUS',poiStart,poiY-10);
+  // Generator Circle + connection
+  ctx.beginPath();ctx.arc(midX,poiY-30,10,0,2*Math.PI);ctx.stroke();
+  ctx.fillText('Generator',midX-30,poiY-45);
+  ctx.beginPath();ctx.moveTo(midX,poiY-20);ctx.lineTo(midX,poiY);ctx.stroke();
   // T-Line
-  ctx.beginPath();
-  ctx.moveTo(midX, poiY);
-  ctx.lineTo(midX, gsuY);
-  ctx.stroke();
-  ctx.fillText('T-Line', midX + 10, (poiY + gsuY) / 2);
+  ctx.beginPath();ctx.moveTo(midX,poiY);ctx.lineTo(midX,gsuY);ctx.stroke();
+  ctx.fillText('T-Line',midX+10,(poiY+gsuY)/2);
 
-  // GSU HV Bus
-  ctx.beginPath();
-  ctx.moveTo(startX, gsuY);
-  ctx.lineTo(startX + feederSpacing * feederConfig.length, gsuY);
-  ctx.stroke();
-  ctx.fillText('GSU HV BUS', startX, gsuY - 10);
-
+  // GSU HV BUS
+  ctx.strokeStyle='#0a66c2';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(startX,gsuY);ctx.lineTo(startX+feederConfig.length*feederSpacing,gsuY);ctx.stroke();
+  ctx.fillStyle='#000';ctx.fillText('GSU HV BUS',startX,gsuY-10);
   // GSU Transformer
-  ctx.fillStyle = '#2ecc71';
-  ctx.fillRect(midX - 10, gsuY, 20, 40);
+  ctx.fillStyle='#2ecc71';ctx.fillRect(midX-10,gsuY,20,40);
 
-  // Sub-MV Bus
-  ctx.strokeStyle = '#0a66c2';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(startX, mvY);
-  ctx.lineTo(startX + feederSpacing * feederConfig.length, mvY);
-  ctx.stroke();
-  ctx.fillStyle = '#000';
-  ctx.fillText('SUB-MV BUS', startX, mvY - 10);
+  // Sub-MV BUS
+  ctx.strokeStyle='#0a66c2';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(startX,mvY);ctx.lineTo(startX+feederConfig.length*feederSpacing,mvY);ctx.stroke();
+  ctx.fillStyle='#000';ctx.fillText('SUB-MV BUS',startX,mvY-10);
 
   // Feeders
-  feederConfig.forEach((invCount, fIdx) => {
-    const feederBottomY = mvY + invCount * verticalSpacing;
-    let totalImpedance = 0, power = 0;
+  let invCtr=0, feederX=startX+40, feederSummary=[];
+  feederConfig.forEach((cnt,idx)=>{
+    const bottomY=mvY+cnt*verticalSpacing;
+    // feeder drop
+    ctx.strokeStyle='#444';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(feederX,mvY);ctx.lineTo(feederX,bottomY);ctx.stroke();
 
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(feederX, mvY);
-    ctx.lineTo(feederX, feederBottomY);
-    ctx.stroke();
-
-    for (let j = 0; j < invCount; j++) {
-      const y = mvY + (j + 1) * verticalSpacing;
-      const invName = `INV${1001 + invCounter}`;
-
-      ctx.strokeStyle = '#0a66c2';
-      ctx.beginPath();
-      ctx.moveTo(feederX, y);
-      ctx.lineTo(feederX + branchLength, y);
-      ctx.stroke();
-
-      ctx.fillStyle = 'red';
-      ctx.beginPath();
-      ctx.arc(feederX, y, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.font = '10px Inter';
-      ctx.fillText(invName, feederX - 55, y - 10);
-
-      ctx.fillStyle = '#2ecc71';
-      ctx.fillRect(feederX + branchLength, y - 10, 20, 20);
-
-      const lvTop = y + 10, lvBottom = y + 40, lvCenter = (lvTop + lvBottom) / 2;
-      ctx.strokeStyle = '#ff9900';
-      ctx.beginPath();
-      ctx.moveTo(feederX + branchLength + 10, lvTop);
-      ctx.lineTo(feederX + branchLength + 10, lvBottom);
-      ctx.stroke();
-
-      ctx.fillStyle = 'blue';
-      ctx.beginPath();
-      ctx.arc(feederX + branchLength + 10, lvCenter, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.fillText(`${invName}_LV`, feederX + branchLength + 20, lvCenter + 10);
-
-      ctx.fillStyle = '#ffcc00';
-      ctx.fillRect(feederX + branchLength - 2, lvBottom, 24, 24);
-      ctx.fillStyle = '#000';
-      ctx.fillText(`I${invCounter + 1}`, feederX + branchLength - 5, lvBottom + 35);
-
-      if (parsedLayout[invCounter].hasLoad) {
-        ctx.fillStyle = '#ff4444';
+    for(let j=0;j<cnt;j++){
+      const y=mvY+(j+1)*verticalSpacing,
+            invName=`INV${1001+invCtr}`;
+      // horizontal tap
+      ctx.strokeStyle='#0a66c2';ctx.beginPath();
+      ctx.moveTo(feederX,y);ctx.lineTo(feederX+branchLength,y);ctx.stroke();
+      // MV dot + label
+      ctx.fillStyle='red';ctx.beginPath();
+      ctx.arc(feederX,y,4,0,2*Math.PI);ctx.fill();
+      ctx.fillStyle='#000';ctx.font='10px Inter';
+      ctx.fillText(invName,feederX-55,y-10);
+      // transformer box
+      ctx.fillStyle='#2ecc71';
+      ctx.fillRect(feederX+branchLength,y-10,20,20);
+      // LV line + dot + label
+      const tX=feederX+branchLength+10,
+            lvTop=y+10, lvBot=y+40, lvMid=(lvTop+lvBot)/2;
+      ctx.strokeStyle='#ff9900';ctx.beginPath();
+      ctx.moveTo(tX,lvTop);ctx.lineTo(tX,lvBot);ctx.stroke();
+      ctx.fillStyle='blue';ctx.beginPath();
+      ctx.arc(tX,lvMid,4,0,2*Math.PI);ctx.fill();
+      ctx.fillStyle='#000';ctx.fillText(`${invName}_LV`,tX+10,lvMid+10);
+      // Inverter box + label
+      ctx.fillStyle='#ffcc00';
+      ctx.fillRect(feederX+branchLength-2,lvBot,24,24);
+      ctx.fillStyle='#000';
+      ctx.fillText(`I${invCtr+1}`,feederX+branchLength-5,lvBot+35);
+      // optional load
+      if(parsedLayout[invCtr].hasLoad){
+        ctx.fillStyle='#ff4444';
         ctx.beginPath();
-        ctx.arc(feederX + branchLength + 30, lvBottom + 12, 5, 0, Math.PI * 2);
+        ctx.arc(tX+20,lvBot+12,5,0,2*Math.PI);
         ctx.fill();
       }
-
-      totalImpedance += parsedLayout[invCounter].impedance || 0;
-      power++;
-      invCounter++;
+      invCtr++;
     }
-
-    const base = 11 + Math.floor(fIdx / 2);
-    const suffix = fIdx % 2 === 0 ? 'A' : 'B';
-    const feederLabel = `${base}${suffix}`;
-    ctx.fillStyle = '#000';
-    ctx.fillText(feederLabel, feederX - 10, feederBottomY + 30);
-    feederSummary.push(`Feeder ${feederLabel}: ${invCount} Inverters, Z=${totalImpedance.toFixed(2)} pu`);
-    feederX += feederSpacing;
+    // feeder label 11A,11B,...
+    const base=11+Math.floor(idx/2),
+          suf= idx%2===0 ? 'A':'B',
+          flbl=`${base}${suf}`;
+    ctx.fillStyle='#000';
+    ctx.fillText(flbl,feederX-10,bottomY+30);
+    feederSummary.push(`Feeder ${flbl}: ${cnt} Inverters, Z=${(cnt*(parsedLayout[0]?.impedance||0)).toFixed(2)} pu`);
+    feederX+=feederSpacing;
   });
 
-  if (document.getElementById("showLegend").checked) {
-    const legendItems = [
-      ['Red Dot', 'MV Bus Point'],
-      ['Green Box', 'Transformer'],
-      ['Blue Dot', 'LV Bus Point'],
-      ['Yellow Box', 'Inverter'],
-      ['Red Circle', 'LV Load (if checked)']
-    ];
-    ctx.fillStyle = '#000';
-    ctx.font = '14px Inter';
-    ctx.fillText('Legend', legendX, legendY);
-    legendItems.forEach((item, i) => {
-      const y = legendY + 20 + i * 20;
-      ctx.fillStyle = item[0].includes('Red') ? 'red' :
-                      item[0].includes('Green') ? '#2ecc71' :
-                      item[0].includes('Blue') ? 'blue' :
-                      item[0].includes('Yellow') ? '#ffcc00' : '#ff4444';
-      if (item[0].includes('Dot') || item[0].includes('Circle')) {
-        ctx.beginPath();
-        ctx.arc(legendX + 10, y - 4, 5, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.fillRect(legendX + 3, y - 10, 14, 14);
+  // Legend & summary
+  if(document.getElementById('showLegend').checked){
+    const items=[['Red Dot','MV Bus Point'],['Green Box','Transformer'],['Blue Dot','LV Bus Point'],['Yellow Box','Inverter'],['Red Circle','LV Load']];
+    ctx.fillStyle='#000';ctx.font='14px Inter';ctx.fillText('Legend',legendX,legendY);
+    items.forEach((it,i)=>{
+      const y=legendY+20+i*20;
+      ctx.fillStyle=it[0].includes('Red Dot')?'red':it[0].includes('Green')?'#2ecc71':it[0].includes('Blue')?'blue':'#ffcc00';
+      if(it[0].includes('Dot')){
+        ctx.beginPath();ctx.arc(legendX+10,y-4,5,0,2*Math.PI);ctx.fill();
+      }else{
+        ctx.fillRect(legendX+3,y-10,14,14);
       }
-      ctx.fillStyle = '#000';
-      ctx.fillText(item[1], legendX + 25, y);
+      ctx.fillStyle='#000';ctx.fillText(it[1],legendX+25,y);
     });
-
-    feederSummary.forEach((line, idx) => {
-      ctx.fillText(line, legendX, legendY + 160 + idx * 20);
-    });
+    feederSummary.forEach((ln,i)=>ctx.fillText(ln,legendX,legendY+160+i*20));
   }
 }
 </script>
