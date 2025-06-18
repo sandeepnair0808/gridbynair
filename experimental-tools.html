@@ -14,7 +14,7 @@
     }
     main {
       padding: 20px;
-      max-width: 1600px;
+      max-width: 1800px;
       margin: auto;
     }
     label {
@@ -45,7 +45,6 @@
       border: 1px solid #ccc;
       margin-top: 20px;
       width: 100%;
-      max-width: 1600px;
     }
   </style>
 </head>
@@ -81,7 +80,7 @@
   <button onclick="exportPDF()">Export PDF</button>
   <button onclick="exportDXF()">Export DXF</button>
 
-  <canvas id="schematicCanvas" width="1600" height="1800"></canvas>
+  <canvas id="schematicCanvas" width="1800" height="2000"></canvas>
 </main>
 
 <script>
@@ -138,10 +137,12 @@ function drawVerticalRootLayout(feederConfig) {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const startX = 100, topBusY = 100, feederSpacing = 150, verticalSpacing = 100, branchLength = 50;
-  const legendX = 1250, legendY = 100;
+  const startX = 100, topBusY = 100, feederSpacing = 180, verticalSpacing = 100, branchLength = 50;
+  const legendX = 1400, legendY = 100;
+  let invCounter = 0, feederX = startX + 40;
+  let feederSummary = [];
 
-  // Export buttons
+  // Export functions
   window.exportSVG = () => {
     const svgData = canvas.toDataURL('image/svg+xml');
     const link = document.createElement('a');
@@ -160,7 +161,7 @@ function drawVerticalRootLayout(feederConfig) {
     alert('DXF export not implemented. Use svg2dxf externally.');
   };
 
-  // Draw main MV bus
+  // Main MV bus
   ctx.strokeStyle = '#0a66c2';
   ctx.lineWidth = 4;
   ctx.beginPath();
@@ -170,10 +171,6 @@ function drawVerticalRootLayout(feederConfig) {
   ctx.fillStyle = '#000';
   ctx.font = '12px Inter';
   ctx.fillText('MAIN MV BUS', startX, topBusY - 10);
-
-  let feederX = startX + 40;
-  let invCounter = 0;
-  let feederSummary = [];
 
   feederConfig.forEach((invCount, fIdx) => {
     const feederBottomY = topBusY + invCount * verticalSpacing;
@@ -197,13 +194,14 @@ function drawVerticalRootLayout(feederConfig) {
       ctx.lineTo(feederX + branchLength, y);
       ctx.stroke();
 
-      // MV red dot
+      // MV dot and label
       ctx.fillStyle = 'red';
       ctx.beginPath();
       ctx.arc(feederX, y, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#000';
-      ctx.fillText(invName, feederX - 42, y - 8);
+      ctx.font = '10px Inter';
+      ctx.fillText(invName, feederX - 55, y - 10);
 
       // Transformer
       ctx.fillStyle = '#2ecc71';
@@ -211,7 +209,7 @@ function drawVerticalRootLayout(feederConfig) {
       ctx.fillStyle = '#000';
       ctx.fillText(`TX${invCounter + 1}`, feederX + branchLength - 6, y - 14);
 
-      // LV bus
+      // LV line and dot
       const lvTop = y + 10, lvBottom = y + 40, lvCenter = (lvTop + lvBottom) / 2;
       ctx.strokeStyle = '#ff9900';
       ctx.beginPath();
@@ -219,13 +217,12 @@ function drawVerticalRootLayout(feederConfig) {
       ctx.lineTo(feederX + branchLength + 10, lvBottom);
       ctx.stroke();
 
-      // LV blue dot
       ctx.fillStyle = 'blue';
       ctx.beginPath();
       ctx.arc(feederX + branchLength + 10, lvCenter, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#000';
-      ctx.fillText(`${invName}_LV`, feederX + branchLength + 18, lvCenter + 4);
+      ctx.fillText(`${invName}_LV`, feederX + branchLength + 20, lvCenter + 10);
 
       // Inverter
       ctx.fillStyle = '#ffcc00';
@@ -236,7 +233,7 @@ function drawVerticalRootLayout(feederConfig) {
       if (parsedLayout[invCounter].hasLoad) {
         ctx.fillStyle = '#ff4444';
         ctx.beginPath();
-        ctx.arc(feederX + branchLength + 25, lvBottom + 12, 5, 0, Math.PI * 2);
+        ctx.arc(feederX + branchLength + 30, lvBottom + 12, 5, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -246,7 +243,6 @@ function drawVerticalRootLayout(feederConfig) {
     }
 
     ctx.fillStyle = '#000';
-    ctx.font = '12px Inter';
     ctx.fillText(`Feeder ${fIdx + 1}`, feederX - 10, feederBottomY + 30);
     feederSummary.push(`Feeder ${fIdx + 1}: ${invCount} Inverters, Impedance=${totalImpedance.toFixed(2)} pu, Power=${power} units`);
     feederX += feederSpacing;
