@@ -23,6 +23,246 @@
     }
     button:hover { background:#004a99 }
     #canvasContainer {
+      width:100%; height:60vh; min-height:400px;
+      border:1px solid #ccc; overflow:hidden;
+      position:relative; cursor:grab;
+    }
+    #canvasContainer.grabbing { cursor:grabbing }
+    canvas { transform-origin:0 0; display:block }
+    #coordContainer { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px }
+    .coordPane {
+      background:#fff; border:1px solid #ccc;
+      padding:10px; font-family:monospace; white-space:pre;
+      max-height:200px; overflow:auto;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>⚡ Solar Farm Collector Designer</h1>
+
+  <label>Total Inverters</label>
+  <input type="number" id="total" placeholder="e.g., 40">
+
+  <label>Default Inverters per Feeder</label>
+  <input type="number" id="perFeeder" placeholder="e.g., 8">
+
+  <label>Custom Feeder Configuration</label>
+  <textarea id="customFeeder" placeholder="e.g., 4,4,4,4"></textarea>
+
+  <label>Capacitor Bank (kVAR)</label>
+  <input type="number" id="capacitor" placeholder="e.g., 500">
+
+  <label>MV Voltage (kV)</label>
+  <input type="number" id="mvVoltage" value="34.5" step="0.1">
+
+  <label>LV Voltage (kV)</label>
+  <input type="number" id="lvVoltage" value="0.66" step="0.01">
+
+  <label>Impedance (Z pu)</label>
+  <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01"/>
+
+  <div><input type="checkbox" id="lvLoad"><label for="lvLoad">Add Load on LV side</label></div>
+  <div><input type="checkbox" id="showLegend" checked><label for="showLegend">Show Legend</label></div>
+  <div><input type="checkbox" id="showCoords"><label for="showCoords">Show Bus Coordinates</label></div>
+
+  <button id="genBtn">Generate</button>
+  <button id="downloadLocBtn">Download .loc</button>
+  <button id="downloadBusIdvBtn">bus.idv</button>
+  <button id="downloadCableIdvBtn">cable.idv</button>
+
+  <div id="canvasContainer">
+    <canvas id="schematicCanvas" width="1800" height="2400"></canvas>
+  </div>
+
+  <div id="coordContainer">
+    <div id="leftPane"  class="coordPane">Bus coordinates will appear here.</div>
+    <div id="locPane"   class="coordPane">.loc output will appear here.</div>
+    <div id="idvPane"   class="coordPane">bus.idv output will appear here.</div>
+    <div id="branchPane" class="coordPane">cable.idv output will appear here.</div>
+  </div>
+</main>
+
+<script>
+// State
+let parsedLayout = [], poiOrigin={x:0,y:0}, busCoords=[], branches=[];
+let mvKV=34.5, lvKV=0.66;
+
+// DOM refs
+const container      = document.getElementById('canvasContainer');
+const canvas         = document.getElementById('schematicCanvas');
+const ctx            = canvas.getContext('2d');
+const genBtn         = document.getElementById('genBtn');
+const downloadLocBtn = document.getElementById('downloadLocBtn');
+const downloadBusIdvBtn = document.getElementById('downloadBusIdvBtn');
+const downloadCableIdvBtn = document.getElementById('downloadCableIdvBtn');
+const showCoordsChk  = document.getElementById('showCoords');
+const leftPane       = document.getElementById('leftPane');
+const locPane        = document.getElementById('locPane');
+const idvPane        = document.getElementById('idvPane');
+const branchPane     = document.getElementById('branchPane');
+const slider         = document.getElementById('zoomSlider');
+const resetBtn       = document.getElementById('resetBtn');
+const zoomInBtn      = document.getElementById('zoomInBtn');
+const zoomOutBtn     = document.getElementById('zoomOutBtn');
+
+let scale=1, panX=0, panY=0, isPanning=false, startX=0, startY=0;
+
+// Pan & Zoom helpers
+function updateTransform(){
+  canvas.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
+}
+function resetView(){ scale=1; panX=0; panY=0; updateTransform(); slider.value=scale }
+function zoomTo(ns,cx=canvas.clientWidth/2,cy=canvas.clientHeight/2){
+  panX -= (cx/scale - cx/ns);
+  panY -= (cy/scale - cy/ns);
+  scale=ns; updateTransform(); slider.value=ns;
+}
+slider.addEventListener('input', e=>zoomTo(+e.target.value));
+resetBtn .addEventListener('click', resetView);
+zoomInBtn.addEventListener('click', ()=>zoomTo(Math.min(scale*1.1,10)));
+zoomOutBtn.addEventListener('click', ()=>zoomTo(Math.max(scale*0.9,0.1)));
+container.addEventListener('wheel', e=>{ e.preventDefault(); const d=-e.deltaY*0.001, ns=Math.min(Math.max(scale+d,0.1),10), r=canvas.getBoundingClientRect(); zoomTo(ns,e.clientX-r.left,e.clientY-r.top) });
+container.addEventListener('mousedown', e=>{ isPanning=true; container.classList.add('grabbing'); startX=e.clientX-panX; startY=e.clientY-panY });
+document.addEventListener('mousemove', e=>{ if(!isPanning) return; panX=e.clientX-startX; panY=e.clientY-startY; updateTransform() });
+document.addEventListener('mouseup', ()=>{ isPanning=false; container.classList.remove('grabbing') });
+
+// Main generate
+function generateCollector(){
+  const total     = +document.getElementById('total').value;
+  if(!total) return alert('Enter total inverters');
+  const perFeeder = +document.getElementById('perFeeder').value;
+  const custom    = document.getElementById('customFeeder').value.trim();
+  const capacitor = +document.getElementById('capacitor').value;
+  mvKV = +document.getElementById('mvVoltage').value;
+  lvKV = +document.getElementById('lvVoltage').value;
+  const impedance = +document.getElementById('impedance').value;
+  const lvLoad    = document.getElementById('lvLoad').checked;
+
+  // compute feeder config
+  let feederConfig=[], rem=total;
+  if(custom){
+    feederConfig = custom.split(',').map(n=>+n).filter(n=>n>0);
+    let sum = feederConfig.reduce((a,b)=>a+b,0);
+    if(sum<total) while(sum++<total) feederConfig.push(1);
+    else if(sum>total){ let run=0; feederConfig = feederConfig.filter(n=>{ if(run+n<=total){ run+=n; return true } if(run<total){ feederConfig.push(total-run); run=total; return true } return false }) }
+  } else {
+    while(rem>0){ const cnt = Math.min(perFeeder||total,rem); feederConfig.push(cnt); rem-=cnt }
+  }
+
+  // build layout
+  parsedLayout=[];
+  feederConfig.forEach((cnt,i)=>{
+    for(let j=0;j<cnt;j++) parsedLayout.push({ feeder:i+1, inverter:parsedLayout.length+1, capacitor, voltageMV:mvKV, voltageLV:lvKV, impedance, hasLoad:lvLoad });
+  });
+
+  drawLayout(feederConfig);
+  fitToContainer();
+  updatePanes();
+}
+
+// drawLayout (omitted for brevity, same as earlier)
+function drawLayout(feederConfig){
+  // ... draw lines and populate busCoords ...
+}
+
+// update all panes, including branchPane
+function updatePanes(){
+  const coordsOnly = busCoords.filter(b=>!/^\d+(?:A|B)$/.test(b.name));
+
+  // leftPane
+  leftPane.textContent = coordsOnly.map(b=>{
+    const lon=Math.abs(b.x).toFixed(0).padStart(4)+(b.x<0?'W':'E');
+    const lat=Math.abs(b.y).toFixed(0).padStart(4)+(b.y<0?'S':'N');
+    return `${b.name.padEnd(12)} (${lon}, ${lat})`;
+  }).join('\n');
+
+  // locPane
+  let loc='GEOPHYSICAL\n';
+  coordsOnly.forEach(b=>{
+    let num = getBusNum(b.name);
+    const lon6=Math.abs(b.x).toFixed(6)+(b.x<0?'W':'E');
+    const lat6=Math.abs(b.y).toFixed(6)+(b.y<0?'S':'N');
+    loc+=`${num}  ${lon6}  ${lat6}  90  0.80\n`;
+  });
+  loc+='BRANCHES\n'; locPane.textContent=loc;
+
+  // idvPane
+  let idv='';
+  coordsOnly.forEach(b=>{
+    let num=getBusNum(b.name);
+    const type=b.name.endsWith('_LV')?2:1;
+    const kv = type===2?lvKV.toFixed(2):mvKV.toFixed(2);
+    idv += `BAT_BUS_DATA_4,${num},0,1,1,1,1,0.0,1.0,0.0,1.1,0.9,1.1,0.9," "\n`;
+    idv += `BAT_BUS_CHNG_4,${num},0,${type},,,,,,${kv},,,,,,,,'${b.name}'\n\n`;
+  });
+  idvPane.textContent=idv;
+
+  // branches logic: subMV (201) -> first INV, then chain
+  const mvNames = coordsOnly.filter(b=>/^INV\d+$/.test(b.name)).map(b=>+b.name.match(/\d+/)[0]).sort((a,b)=>a-b);
+  branches=[];
+  if(mvNames.length){ branches.push([201,mvNames[0]]);
+    for(let i=0;i<mvNames.length-1;i++) branches.push([mvNames[i],mvNames[i+1]]);
+  }
+
+  // branchPane
+  let br='';
+  branches.forEach(([a,b])=>{
+    br += `BAT_BRANCH_DATA_3,${a},${b},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0," "\n`;
+    br += `BAT_BRANCH_CHNG_3,${a},${b},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;\n`;
+    br += `BAT_NEWSEQ,;\n`;
+    br += `BAT_SEQ_BRANCH_DATA_3,${a},${b},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`;
+  });
+  branchPane.textContent=br;
+}
+
+function getBusNum(name){
+  if(name==='POI BUS') return 100;
+  if(name==='GSU HV BUS') return 101;
+  if(name==='SUB-MV BUS') return 201;
+  const d=(name.match(/\d+/)||[''])[0];
+  return name.endsWith('_LV')?+d[0]+'0'+d.slice(1):+d;
+}
+
+function fitToContainer(m=40){ /* ... */ }
+
+// download handlers
+downloadLocBtn.addEventListener('click',()=>{/* ... */});
+downloadBusIdvBtn.addEventListener('click',()=>{/* ... */});
+downloadCableIdvBtn.addEventListener('click',()=>{/* ... */});
+
+genBtn.addEventListener('click',generateCollector);
+
+// init
+if('ResizeObserver' in window) new ResizeObserver(()=>fitToContainer()).observe(container);
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Solar Farm Collector Designer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" 
+    rel="stylesheet"
+  />
+  <style>
+    body { font-family:'Inter',sans-serif; background:#f0f8ff; margin:0 }
+    main { padding:20px; max-width:1800px; margin:auto }
+    label { display:block; margin:10px 0 4px; font-weight:600 }
+    input, textarea {
+      width:300px; padding:8px; margin-bottom:10px;
+      border:1px solid #ccc; border-radius:6px;
+    }
+    button {
+      margin:10px 10px 0 0; padding:10px 16px;
+      background:#0a66c2; color:#fff; border:none;
+      border-radius:6px; cursor:pointer;
+    }
+    button:hover { background:#004a99 }
+    #canvasContainer {
       width:100%; height:70vh; min-height:500px;
       border:1px solid #ccc; overflow:hidden;
       position:relative; cursor:grab;
