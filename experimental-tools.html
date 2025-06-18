@@ -203,13 +203,11 @@ function drawVerticalRootLayout(feederConfig) {
       ctx.font = '10px Inter';
       ctx.fillText(invName, feederX - 55, y - 10);
 
-      // Transformer
+      // Transformer (no label)
       ctx.fillStyle = '#2ecc71';
       ctx.fillRect(feederX + branchLength, y - 10, 20, 20);
-      ctx.fillStyle = '#000';
-      ctx.fillText(`TX${invCounter + 1}`, feederX + branchLength - 6, y - 14);
 
-      // LV line and dot
+      // LV bus line and dot
       const lvTop = y + 10, lvBottom = y + 40, lvCenter = (lvTop + lvBottom) / 2;
       ctx.strokeStyle = '#ff9900';
       ctx.beginPath();
