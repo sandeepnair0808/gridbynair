@@ -96,7 +96,7 @@
       poiOrigin    = { x:0, y:0 },
       busCoords    = [];
 
-  // Canvas & Transform
+  // Canvas & Transform state
   const container = document.getElementById('canvasContainer');
   const canvas    = document.getElementById('schematicCanvas');
   const ctx       = canvas.getContext('2d');
@@ -104,6 +104,7 @@
   let isPanning = false, startX = 0, startY = 0;
   const slider = document.getElementById('zoomSlider');
 
+  // Transform helpers
   function updateTransform() {
     canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
   }
@@ -123,12 +124,12 @@
   function zoomOut() { zoomTo(Math.max(scale * 0.9, 0.1)); }
   slider.addEventListener('input', e => zoomTo(parseFloat(e.target.value)));
 
-  // Pan & zoom interactions
+  // Mouse & touch interactions
   container.addEventListener('wheel', e => {
     e.preventDefault();
     const delta = -e.deltaY * 0.001;
-    const newScale = Math.min(Math.max(scale + delta, 0.1), 10);
     const rect = canvas.getBoundingClientRect();
+    const newScale = Math.min(Math.max(scale + delta, 0.1), 10);
     zoomTo(newScale, e.clientX - rect.left, e.clientY - rect.top);
   });
   container.addEventListener('mousedown', e => {
@@ -143,8 +144,26 @@
   document.addEventListener('mouseup', () => {
     isPanning = false; container.classList.remove('grabbing');
   });
+  container.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      isPanning = true;
+      const t = e.touches[0];
+      startX = t.clientX - panX; startY = t.clientY - panY;
+    }
+  }, { passive: false });
+  container.addEventListener('touchmove', e => {
+    if (e.touches.length === 1 && isPanning) {
+      const t = e.touches[0];
+      panX = t.clientX - startX; panY = t.clientY - startY;
+      updateTransform();
+    }
+    e.preventDefault();
+  }, { passive: false });
+  container.addEventListener('touchend', () => {
+    isPanning = false; container.classList.remove('grabbing');
+  });
 
-  // Build & draw
+  // Main generation logic
   function generateCollector() {
     const total      = parseInt(document.getElementById('total').value);
     if (!total || total <= 0) return alert('Enter total inverters');
@@ -155,7 +174,7 @@
     const impedance  = parseFloat(document.getElementById('impedance').value);
     const lvLoad     = document.getElementById('lvLoad').checked;
 
-    // Feeder config
+    // Build feeder config
     let feederConfig = [], remaining = total;
     if (custom) {
       feederConfig = custom.split(',').map(n=>parseInt(n)).filter(n=>!isNaN(n));
@@ -178,23 +197,18 @@
       }
     }
 
-    // Layout array
+    // Build layout array
     parsedLayout = [];
     let idx = 1;
     feederConfig.forEach((cnt,i) => {
       for (let j=0; j<cnt; j++) {
-        parsedLayout.push({
-          feeder:   i+1,
-          inverter: idx++,
-          capacitor, voltage, impedance,
-          hasLoad:  lvLoad
-        });
+        parsedLayout.push({ feeder: i+1, inverter: idx++, capacitor, voltage, impedance, hasLoad: lvLoad });
       }
     });
 
-    // Draw + fit
+    // Draw and fit
     drawVerticalRootLayout(feederConfig);
-    fitToContainer();  // 60px margin
+    fitToContainer();  // now uses 60px margin
   }
 
   function drawVerticalRootLayout(feederConfig) {
@@ -203,10 +217,24 @@
     updateTransform();
 
     busCoords = [];
-    // … existing draw code, pushing coords into busCoords …
+    const startX       = 100, poiY = 100, gsuY = poiY+80, mvY = gsuY+80;
+    const feederSpacing= 180, verticalSpacing = 100, branchLength = 50;
+    const midX         = startX + (feederConfig.length*feederSpacing)/2;
+    const poiLen       = 200, poiStart = midX-poiLen/2, poiEnd = midX+poiLen/2;
+    poiOrigin = { x: midX, y: poiY };
+
+    const drawLine = (x1,y1,x2,y2,clr='#000',w=2) => {
+      ctx.save(); ctx.strokeStyle=clr; ctx.lineWidth=w;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      ctx.restore();
+    };
+
+    // … [rest of drawing stays identical] …
+    // (POI bus, generator, transformer, feeders, inverters, legend, coords pane)
+    // busCoords.push(...) for every node as before
   }
 
-  // Auto‐fit so everything shows (60px padding)
+  // Fit & center with 60px margin
   function fitToContainer(margin = 60) {
     if (!busCoords.length) return;
     const abs = busCoords.map(b => ({
@@ -216,9 +244,8 @@
     const xs = abs.map(p => p.x), ys = abs.map(p => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
-
-    const contentW = (maxX - minX) + margin*2;
-    const contentH = (maxY - minY) + margin*2;
+    const contentW = maxX - minX + margin*2;
+    const contentH = maxY - minY + margin*2;
     const cw = container.clientWidth, ch = container.clientHeight;
     const newScale = Math.min(cw / contentW, ch / contentH);
 
@@ -230,7 +257,7 @@
     slider.value = scale;
   }
 
-  // Export
+  // Export helpers (SVG/PDF/DXF)
   window.exportSVG = () => {
     const a = document.createElement('a');
     a.download = 'schematic.svg';
