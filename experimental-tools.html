@@ -5,23 +5,14 @@
   <title>Solar Farm Collector Designer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body { font-family:'Inter',sans-serif; background:#f0f8ff; margin:0; }
     main { padding:20px; max-width:1800px; margin:auto; }
     label { display:block; margin:10px 0 4px; font-weight:600; }
-    input, textarea {
-      width:300px; padding:8px; margin-bottom:10px;
-      border:1px solid #ccc; border-radius:6px;
-    }
-    button {
-      margin:10px 10px 0 0; padding:10px 16px;
-      background:#0a66c2; color:#fff; border:none;
-      border-radius:6px; cursor:pointer;
-    }
+    input, textarea { width:300px; padding:8px; margin-bottom:10px; border:1px solid #ccc; border-radius:6px; }
+    button { margin:10px 10px 0 0; padding:10px 16px; background:#0a66c2; color:#fff; border:none; border-radius:6px; cursor:pointer; }
     button:hover { background:#004a99; }
 
-    /* container fills width and 80% of viewport height */
     #canvasContainer {
       width: 100%;
       height: 80vh;
@@ -34,48 +25,23 @@
     #canvasContainer.grabbing { cursor: grabbing; }
     canvas { transform-origin: 0 0; display: block; }
     #coordPane {
-      margin-top:10px; padding:10px;
-      background:#fff; border:1px solid #ccc;
-      font-family:monospace; white-space:pre;
-      max-height:300px; overflow:auto;
+      margin-top:10px; padding:10px; background:#fff; border:1px solid #ccc;
+      font-family:monospace; white-space:pre; max-height:300px; overflow:auto;
     }
   </style>
 </head>
 <body>
 <main>
   <h1>⚡ Solar Farm Collector Designer</h1>
-
-  <label>Total Inverters</label>
-  <input type="number" id="total" placeholder="e.g., 40" />
-
-  <label>Default Inverters per Feeder</label>
-  <input type="number" id="perFeeder" placeholder="e.g., 8" />
-
-  <label>Custom Feeder Configuration</label>
-  <textarea id="customFeeder" placeholder="e.g., 4,4,4,4"></textarea>
-
-  <label>Capacitor Bank (kVAR)</label>
-  <input type="number" id="capacitor" placeholder="e.g., 500" />
-
-  <label>Voltage (kV)</label>
-  <input type="number" id="voltage" placeholder="e.g., 33" />
-
-  <label>Impedance (Z pu)</label>
-  <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01"/>
-
-  <div>
-    <input type="checkbox" id="lvLoad"/>
-    <label for="lvLoad">Add Load on LV side</label>
-  </div>
-  <div>
-    <input type="checkbox" id="showLegend" checked/>
-    <label for="showLegend">Show Legend</label>
-  </div>
-  <div>
-    <input type="checkbox" id="showCoords"/>
-    <label for="showCoords">Show Bus Coordinates</label>
-  </div>
-
+  <label>Total Inverters</label><input type="number" id="total" placeholder="e.g., 40" />
+  <label>Default Inverters per Feeder</label><input type="number" id="perFeeder" placeholder="e.g., 8" />
+  <label>Custom Feeder Configuration</label><textarea id="customFeeder" placeholder="e.g., 4,4,4,4"></textarea>
+  <label>Capacitor Bank (kVAR)</label><input type="number" id="capacitor" placeholder="e.g., 500" />
+  <label>Voltage (kV)</label><input type="number" id="voltage" placeholder="e.g., 33" />
+  <label>Impedance (Z pu)</label><input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01"/>
+  <div><input type="checkbox" id="lvLoad"/><label for="lvLoad">Add Load on LV side</label></div>
+  <div><input type="checkbox" id="showLegend" checked/><label for="showLegend">Show Legend</label></div>
+  <div><input type="checkbox" id="showCoords"/><label for="showCoords">Show Bus Coordinates</label></div>
   <button onclick="generateCollector()">Generate</button>
   <button onclick="resetView()">Reset View</button>
   <button onclick="zoomIn()">Zoom In</button>
@@ -102,64 +68,61 @@
         ctx       = canvas.getContext('2d'),
         slider    = document.getElementById('zoomSlider');
 
-  let scale = 1, panX = 0, panY = 0,
-      isPanning = false, startX=0, startY=0;
+  let scale=1, panX=0, panY=0, isPanning=false, startX=0, startY=0;
 
-  // ─── pan/zoom helpers ────────────────────────────────────────────────
+  // ─── pan/zoom helpers ──────────────────────────────────────────
   function updateTransform() {
-    // slider still controls uniform zoom over the last auto-fit result
-    canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    canvas.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
   }
   function resetView() {
-    scale = 1; panX = panY = 0;
-    updateTransform(); slider.value = scale;
+    scale=1; panX=0; panY=0;
+    updateTransform(); slider.value=scale;
   }
-  function zoomTo(ns, cx=canvas.clientWidth/2, cy=canvas.clientHeight/2) {
+  function zoomTo(ns,cx=canvas.clientWidth/2,cy=canvas.clientHeight/2){
     panX -= (cx/scale - cx/ns);
     panY -= (cy/scale - cy/ns);
-    scale = ns; updateTransform(); slider.value = ns;
+    scale=ns; updateTransform(); slider.value=ns;
   }
   function zoomIn()  { zoomTo(Math.min(scale*1.1,10)); }
   function zoomOut() { zoomTo(Math.max(scale*0.9,0.1)); }
-  slider.addEventListener('input', e => zoomTo(+e.target.value));
+  slider.addEventListener('input', e=>zoomTo(+e.target.value));
 
-  // wheel & drag
   container.addEventListener('wheel', e=>{
     e.preventDefault();
-    const delta = -e.deltaY*0.001, ns = Math.min(Math.max(scale+delta,0.1),10);
-    const rect = canvas.getBoundingClientRect();
-    zoomTo(ns, e.clientX-rect.left, e.clientY-rect.top);
+    const d = -e.deltaY*0.001, ns = Math.min(Math.max(scale+d,0.1),10);
+    const r = canvas.getBoundingClientRect();
+    zoomTo(ns, e.clientX-r.left, e.clientY-r.top);
   });
   container.addEventListener('mousedown', e=>{
-    isPanning = true; container.classList.add('grabbing');
-    startX = e.clientX - panX; startY = e.clientY - panY;
+    isPanning=true; container.classList.add('grabbing');
+    startX=e.clientX-panX; startY=e.clientY-panY;
   });
   document.addEventListener('mousemove', e=>{
     if(!isPanning) return;
-    panX = e.clientX - startX; panY = e.clientY - startY; updateTransform();
+    panX=e.clientX-startX; panY=e.clientY-startY;
+    updateTransform();
   });
   document.addEventListener('mouseup', ()=>{ isPanning=false; container.classList.remove('grabbing'); });
 
-  // ─── generate & draw ─────────────────────────────────────────────────
-  function generateCollector() {
+  // ─── generate & draw ──────────────────────────────────────────
+  function generateCollector(){
     const total     = +document.getElementById('total').value;
     if(!total) return alert('Enter total inverters');
-    const perFeeder = +document.getElementById('perFeeder').value;
-    const custom    = document.getElementById('customFeeder').value.trim();
-    const capacitor = +document.getElementById('capacitor').value;
-    const voltage   = +document.getElementById('voltage').value;
-    const impedance = +document.getElementById('impedance').value;
-    const lvLoad    = document.getElementById('lvLoad').checked;
+    const perFeeder = +document.getElementById('perFeeder').value,
+          custom    = document.getElementById('customFeeder').value.trim(),
+          capacitor = +document.getElementById('capacitor').value,
+          voltage   = +document.getElementById('voltage').value,
+          impedance = +document.getElementById('impedance').value,
+          lvLoad    = document.getElementById('lvLoad').checked;
 
-    // build feederConfig
-    let feederConfig = [], rem=total;
+    let feederConfig=[], rem=total;
     if(custom){
-      feederConfig = custom.split(',').map(n=>+n).filter(n=>n>0);
+      feederConfig=custom.split(',').map(n=>+n).filter(n=>n>0);
       let sum=feederConfig.reduce((a,b)=>a+b,0);
       if(sum<total) while(sum++<total) feederConfig.push(1);
       else if(sum>total){
         let run=0;
-        feederConfig = feederConfig.filter(n=>{
+        feederConfig=feederConfig.filter(n=>{
           if(run+n<=total){run+=n;return true;}
           if(run<total){feederConfig.push(total-run);run=total;return true;}
           return false;
@@ -167,12 +130,11 @@
       }
     } else {
       while(rem>0){
-        const cnt = Math.min(perFeeder||total,rem);
+        const cnt=Math.min(perFeeder||total,rem);
         feederConfig.push(cnt); rem-=cnt;
       }
     }
 
-    // build layout
     parsedLayout=[]; let idx=1;
     feederConfig.forEach((cnt,i)=>{
       for(let j=0;j<cnt;j++){
@@ -181,7 +143,7 @@
     });
 
     drawLayout(feederConfig);
-    fitToContainer(); 
+    fitToContainer();
   }
 
   function drawLayout(feederConfig){
@@ -192,8 +154,8 @@
 
     const startX=100, poiY=100, gsuY=poiY+80, mvY=gsuY+80,
           sx=180, sy=100, bLen=50, poiLen=200,
-          midX = startX + feederConfig.length*sx/2,
-          poiStart = midX-poiLen/2, poiEnd=midX+poiLen/2;
+          midX=startX+feederConfig.length*sx/2,
+          poiStart=midX-poiLen/2, poiEnd=midX+poiLen/2;
     poiOrigin={x:midX,y:poiY};
 
     const line=(x1,y1,x2,y2,c,w=2)=>{
@@ -209,9 +171,8 @@
     ctx.restore();
     busCoords.push({name:'POI BUS',x:poiStart-poiOrigin.x+poiLen/2,y:0,padWidth:poiLen/2,padHeight:0});
 
-    // Generator & T-Line
-    ctx.save();
-      ctx.beginPath(); ctx.arc(midX,poiY-30,10,0,2*Math.PI); ctx.stroke();
+    // Generator/T-Line
+    ctx.save(); ctx.beginPath(); ctx.arc(midX,poiY-30,10,0,2*Math.PI); ctx.stroke();
       ctx.fillText('Generator',midX-30,poiY-45);
     ctx.restore();
     line(midX,poiY-20,midX,poiY,'#000');
@@ -223,12 +184,10 @@
     ctx.save(); ctx.fillText('GSU HV BUS',poiStart,gsuY-10); ctx.restore();
     busCoords.push({name:'GSU HV BUS',x:poiStart-poiOrigin.x+poiLen/2,y:gsuY-poiOrigin.y,padWidth:poiLen/2,padHeight:20});
 
-    // transformer
+    // Transformer
     const xfH=40, xfT=(gsuY+mvY)/2-xfH/2;
     line(midX,gsuY,midX,xfT,'#2ecc71',2);
-    ctx.save(); ctx.fillStyle='#2ecc71';
-      ctx.fillRect(midX-10,xfT,20,xfH);
-    ctx.restore();
+    ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(midX-10,xfT,20,xfH); ctx.restore();
     line(midX,xfT+xfH,midX,mvY,'#2ecc71',2);
 
     // SUB-MV BUS
@@ -240,48 +199,37 @@
     // feeders & inverters
     let invC=0, fx=startX+40;
     feederConfig.forEach((cnt,fi)=>{
-      const botY = mvY+cnt*sy;
+      const botY=mvY+cnt*sy;
       line(fx,mvY,fx,botY,'#444',2);
       for(let j=0;j<cnt;j++){
-        const y = mvY+(j+1)*sy,
-              nm = `INV${1001+invC}`;
-        // MV node
+        const y=mvY+(j+1)*sy, nm=`INV${1001+invC}`;
         line(fx,y,fx+bLen,y,'#0a66c2',2);
-        ctx.save(); ctx.fillStyle='red';
-          ctx.beginPath(); ctx.arc(fx,y,4,0,2*Math.PI); ctx.fill();
+        ctx.save(); ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(fx,y,4,0,2*Math.PI); ctx.fill();
           ctx.fillText(nm,fx-55,y-10);
         ctx.restore();
         busCoords.push({name:nm,x:fx-poiOrigin.x,y:y-poiOrigin.y,padWidth:bLen+12,padHeight:sy/2});
+
         // padmt
-        ctx.save(); ctx.fillStyle='#2ecc71';
-          ctx.fillRect(fx+bLen,y-10,20,20);
-        ctx.restore();
+        ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(fx+bLen,y-10,20,20); ctx.restore();
+
         // LV node & box
         const tX=fx+bLen+10, tT=y+10, tB=y+40, tM=(tT+tB)/2;
         line(tX,tT,tX,tB,'#ff9900',2);
-        ctx.save(); ctx.fillStyle='blue';
-          ctx.beginPath(); ctx.arc(tX,tM,4,0,2*Math.PI); ctx.fill();
+        ctx.save(); ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(tX,tM,4,0,2*Math.PI); ctx.fill();
           ctx.fillText(`${nm}_LV`,tX+10,tM+10);
         ctx.restore();
         busCoords.push({name:`${nm}_LV`,x:tX-poiOrigin.x,y:tM-poiOrigin.y,padWidth:12,padHeight:12});
+
         // inverter box
-        ctx.save(); ctx.fillStyle='#ffcc00';
-          ctx.fillRect(fx+bLen-2,tB,24,24);
-        ctx.restore();
-        ctx.save(); ctx.fillStyle='#000';
-          ctx.fillText(`I${invC+1}`,fx+bLen-5,tB+35);
-        ctx.restore();
+        ctx.save(); ctx.fillStyle='#ffcc00'; ctx.fillRect(fx+bLen-2,tB,24,24); ctx.restore();
+        ctx.save(); ctx.fillStyle='#000'; ctx.fillText(`I${invC+1}`,fx+bLen-5,tB+35); ctx.restore();
+
         if(parsedLayout[invC].hasLoad){
-          ctx.save(); ctx.fillStyle='#ff4444';
-            ctx.beginPath(); ctx.arc(tX+20,tB+12,5,0,2*Math.PI); ctx.fill();
-          ctx.restore();
+          ctx.save(); ctx.fillStyle='#ff4444'; ctx.beginPath(); ctx.arc(tX+20,tB+12,5,0,2*Math.PI); ctx.fill(); ctx.restore();
         }
         invC++;
       }
-      // feeder label
-      const base=11+Math.floor(fi/2),
-            suf = fi%2?'B':'A',
-            lbl = `${base}${suf}`;
+      const base=11+Math.floor(fi/2), suf=fi%2?'B':'A', lbl=`${base}${suf}`;
       ctx.save(); ctx.fillText(lbl,fx-10,botY+30); ctx.restore();
       fx+=sx;
     });
@@ -289,41 +237,27 @@
     // legend
     if(document.getElementById('showLegend').checked){
       const LX=1400, LY=100;
-      const items=[['Red Dot','MV Bus Point'],['Green Box','Transformer'],
-                   ['Blue Dot','LV Bus Point'],['Yellow Box','Inverter'],
-                   ['Red Circle','LV Load']];
-      ctx.save(); ctx.fillText('Legend',LX,LY); ctx.restore();
-      items.forEach(([sh,txt],i)=>{
-        const y=LY+20+i*20;
-        const clr=sh.includes('Red')?'red'
-                  :sh.includes('Green')?'#2ecc71'
-                  :sh.includes('Blue')?'blue'
-                  :'#ffcc00';
+      [['Red Dot','MV Bus Point'],['Green Box','Transformer'],['Blue Dot','LV Bus Point'],['Yellow Box','Inverter'],['Red Circle','LV Load']]
+      .forEach(([sh,txt],i)=>{
+        const y=LY+20+i*20, clr=sh.includes('Red')?'red':sh.includes('Green')?'#2ecc71':sh.includes('Blue')?'blue':'#ffcc00';
         ctx.save(); ctx.fillStyle=clr;
-          if(sh.includes('Dot')){
-            ctx.beginPath(); ctx.arc(LX+10,y-4,5,0,2*Math.PI); ctx.fill();
-          } else {
-            ctx.fillRect(LX+3,y-10,14,14);
-          }
+          if(sh.includes('Dot')){ ctx.beginPath(); ctx.arc(LX+10,y-4,5,0,2*Math.PI); ctx.fill(); }
+          else               ctx.fillRect(LX+3,y-10,14,14);
         ctx.restore();
-        ctx.save(); ctx.fillStyle='#000';
-          ctx.fillText(txt,LX+25,y);
-        ctx.restore();
+        ctx.save(); ctx.fillStyle='#000'; ctx.fillText(txt,LX+25,y); ctx.restore();
       });
     }
 
     // coords
     const pane=document.getElementById('coordPane');
     if(document.getElementById('showCoords').checked){
-      pane.textContent = busCoords
-        .map(b=>`${b.name.padEnd(12)} (${b.x.toFixed(0).padStart(4)}, ${b.y.toFixed(0).padStart(4)})`)
-        .join('\n');
+      pane.textContent=busCoords.map(b=>`${b.name.padEnd(12)} (${b.x.toFixed(0).padStart(4)}, ${b.y.toFixed(0).padStart(4)})`).join('\n');
     } else {
-      pane.textContent = 'Bus coordinates will appear here when you check “Show Bus Coordinates” and hit Generate.';
+      pane.textContent='Bus coordinates will appear here when you check “Show Bus Coordinates” and hit Generate.';
     }
   }
 
-  // ─── FUTURE-PROOF, BOTH-AXIS FIT ─────────────────────────────────────
+  // ─── uniform fitToContainer ────────────────────────────────────────
   function fitToContainer(margin=20){
     if(!busCoords.length) return;
     const allX=[], allY=[];
@@ -335,34 +269,24 @@
     const minX=Math.min(...allX), maxX=Math.max(...allX),
           minY=Math.min(...allY), maxY=Math.max(...allY);
     const contentW=(maxX-minX)+margin*2,
-          contentH=(maxY-minY)+margin*2;
-    const CW=container.clientWidth,
+          contentH=(maxY-minY)+margin*2,
+          CW=container.clientWidth,
           CH=container.clientHeight;
-
-    // compute independent scales:
-    const scaleX = CW / contentW,
-          scaleY = CH / contentH;
-
+    // uniform scale:
+    const uScale = Math.min(CW/contentW, CH/contentH);
     // center offsets:
-    const offX = (CW - contentW*scaleX)/2 - (minX - margin)*scaleX,
-          offY = (CH - contentH*scaleY)/2 - (minY - margin)*scaleY;
-
-    // apply non-uniform transform:
-    canvas.style.transform = `translate(${offX}px, ${offY}px) scale(${scaleX}, ${scaleY})`;
-
-    // store last uniform scale for slider/generation:
-    scale = Math.min(scaleX, scaleY);
-    slider.value = scale;
-    panX = offX; panY = offY;
+    const offX = (CW - contentW*uScale)/2 - (minX - margin)*uScale,
+          offY = (CH - contentH*uScale)/2 - (minY - margin)*uScale;
+    scale=uScale; panX=offX; panY=offY;
+    canvas.style.transform = `translate(${offX}px,${offY}px) scale(${uScale})`;
+    slider.value=uScale;
   }
 
-  // ─── auto-rescale when browser or container changes ───────────────
+  // ─── auto-rescale ────────────────────────────────────────────────
   window.addEventListener('resize', fitToContainer);
-  if('ResizeObserver' in window){
-    new ResizeObserver(fitToContainer).observe(container);
-  }
+  if('ResizeObserver' in window) new ResizeObserver(fitToContainer).observe(container);
 
-  // ─── export helpers ────────────────────────────────────────────────
+  // ─── exports ─────────────────────────────────────────────────────
   window.exportSVG = ()=>{
     const a=document.createElement('a');
     a.download='schematic.svg';
@@ -371,11 +295,11 @@
   };
   window.exportPDF = ()=>{
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation:'landscape', unit:'pt', format:[canvas.width,canvas.height] });
+    const pdf=new jsPDF({orientation:'landscape',unit:'pt',format:[canvas.width,canvas.height]});
     pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,canvas.width,canvas.height);
     pdf.save('schematic.pdf');
   };
-  window.exportDXF = ()=> alert('DXF export not implemented');
+  window.exportDXF = ()=>alert('DXF export not implemented');
 </script>
 </body>
 </html>
