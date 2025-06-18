@@ -3,25 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <title>Solar Farm Collector Designer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    body { font-family: 'Inter', sans-serif; background: #f0f8ff; margin: 0; }
-    main { padding: 20px; max-width: 1800px; margin: auto; }
-    label { display: block; margin: 10px 0 4px; font-weight: 600; }
+    body { font-family:'Inter',sans-serif; background:#f0f8ff; margin:0; }
+    main { padding:20px; max-width:1800px; margin:auto; }
+    label { display:block; margin:10px 0 4px; font-weight:600; }
     input, textarea {
-      width: 300px; padding: 8px; margin-bottom: 10px;
-      border-radius: 6px; border: 1px solid #ccc;
+      width:300px; padding:8px; margin-bottom:10px;
+      border:1px solid #ccc; border-radius:6px;
     }
     button {
-      margin: 10px 10px 0 0; padding: 10px 16px;
-      background: #0a66c2; color: #fff; border: none;
-      border-radius: 6px; cursor: pointer;
+      margin:10px 10px 0 0; padding:10px 16px;
+      background:#0a66c2; color:#fff; border:none;
+      border-radius:6px; cursor:pointer;
     }
-    button:hover { background: #004a99; }
+    button:hover { background:#004a99; }
     canvas {
-      border: 1px solid #ccc; margin-top: 20px; width: 100%;
+      border:1px solid #ccc; margin-top:20px; width:100%;
+    }
+    #coordPane {
+      margin-top:10px; padding:10px;
+      background:#fff; border:1px solid #ccc;
+      font-family:monospace; white-space:pre;
+      max-height:300px; overflow:auto;
     }
   </style>
 </head>
@@ -45,10 +51,20 @@
   <input type="number" id="voltage" placeholder="e.g., 33" />
 
   <label>Impedance (Z pu)</label>
-  <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01" />
+  <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01"/>
 
-  <div><input type="checkbox" id="lvLoad" /><label for="lvLoad">Add Load on LV side</label></div>
-  <div><input type="checkbox" id="showLegend" checked /><label for="showLegend">Show Legend</label></div>
+  <div>
+    <input type="checkbox" id="lvLoad"/>
+    <label for="lvLoad">Add Load on LV side</label>
+  </div>
+  <div>
+    <input type="checkbox" id="showLegend" checked/>
+    <label for="showLegend">Show Legend</label>
+  </div>
+  <div>
+    <input type="checkbox" id="showCoords"/>
+    <label for="showCoords">Show Bus Coordinates</label>
+  </div>
 
   <button onclick="generateCollector()">Generate</button>
   <button onclick="exportSVG()">Export SVG</button>
@@ -56,13 +72,18 @@
   <button onclick="exportDXF()">Export DXF</button>
 
   <canvas id="schematicCanvas" width="1800" height="2400"></canvas>
+  <div id="coordPane">
+    Bus coordinates will appear here when you check “Show Bus Coordinates” and hit Generate.
+  </div>
 </main>
 
 <script>
-let parsedLayout = [];
+let parsedLayout = [], poiOrigin = { x:0, y:0 };
 
 function generateCollector() {
+  // Inputs
   const total = parseInt(document.getElementById('total').value);
+  if (!total || total <= 0) return alert('Enter total inverters');
   const perFeeder = parseInt(document.getElementById('perFeeder').value);
   const customFeeder = document.getElementById('customFeeder').value.trim();
   const capacitor = parseInt(document.getElementById('capacitor').value);
@@ -70,197 +91,173 @@ function generateCollector() {
   const impedance = parseFloat(document.getElementById('impedance').value);
   const lvLoad = document.getElementById('lvLoad').checked;
 
-  if (!total || total <= 0) return alert('Enter total inverters');
-
+  // Build feederConfig
   let feederConfig = [], remaining = total;
-
   if (customFeeder) {
     feederConfig = customFeeder.split(',')
-      .map(n => parseInt(n.trim()))
-      .filter(n => !isNaN(n));
+      .map(n=>parseInt(n.trim()))
+      .filter(n=>!isNaN(n));
     let sum = feederConfig.reduce((a,b)=>a+b,0);
-    if (sum > total) {
-      let running = 0;
+    if (sum>total) {
+      let running=0;
       feederConfig = feederConfig.filter((n,i)=>{
-        if (running + n <= total) {
-          running += n; return true;
-        } else if (running < total) {
-          feederConfig[i] = total - running;
-          running = total;
-          return true;
-        }
+        if (running+n<=total) { running+=n; return true; }
+        if (running<total)  { feederConfig[i]=total-running; running=total; return true; }
         return false;
       });
-    } else if (sum < total) {
-      let rem = total - sum;
-      while (rem > 0) { feederConfig.push(1); rem--; }
+    } else if (sum<total) {
+      let rem=total-sum;
+      while(rem-->0) feederConfig.push(1);
     }
   } else {
-    while (remaining > 0) {
-      const cnt = Math.min(perFeeder||total, remaining);
+    while(remaining>0) {
+      const cnt=Math.min(perFeeder||total,remaining);
       feederConfig.push(cnt);
-      remaining -= cnt;
+      remaining-=cnt;
     }
   }
 
+  // parsedLayout
   parsedLayout = [];
-  let invIndex = 1;
-  feederConfig.forEach((count,i)=>{
-    for(let j=0;j<count;j++){
+  let invIndex=1;
+  feederConfig.forEach((cnt,i)=>{
+    for(let j=0;j<cnt;j++){
       parsedLayout.push({
-        feeder: i+1,
-        inverter: invIndex++,
-        capacitor,
-        voltage,
-        impedance,
+        feeder:i+1,
+        inverter:invIndex++,
+        capacitor, voltage, impedance,
         hasLoad: lvLoad
       });
     }
   });
 
+  // Draw & collect coords
   drawVerticalRootLayout(feederConfig);
 }
 
 function drawVerticalRootLayout(feederConfig) {
-  const canvas = document.getElementById('schematicCanvas'),
-        ctx = canvas.getContext('2d');
+  const canvas=document.getElementById('schematicCanvas'),
+        ctx=canvas.getContext('2d');
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   // Geometry
-  const startX = 100,
-        poiY   = 100,
-        gsuY   = poiY + 80,
-        mvY    = gsuY + 80,
-        feederSpacing  = 180,
-        verticalSpacing= 100,
-        branchLength   = 50;
+  const startX=100,
+        poiY=100,
+        gsuY=poiY+80,
+        mvY=gsuY+80,
+        feederSpacing=180,
+        verticalSpacing=100,
+        branchLength=50;
 
-  // Calculate centers & lengths
-  const midX    = startX + (feederConfig.length * feederSpacing)/2,
-        poiLen  = 200,
-        poiStart= midX - poiLen/2,
-        poiEnd  = midX + poiLen/2;
+  // Mid & lengths
+  const midX=startX+(feederConfig.length*feederSpacing)/2,
+        poiLen=200,
+        poiStart=midX-poiLen/2,
+        poiEnd=midX+poiLen/2;
 
-  // GSU transformer box centered vertically between gsuY and mvY
-  const xfmrHeight = 40;
-  const xfmrTopY   = (gsuY + mvY)/2 - xfmrHeight/2;
+  // Origin
+  poiOrigin={x:midX,y:poiY};
 
-  // Export functions
-  window.exportSVG = ()=>{ const link=document.createElement('a'); link.download='schematic.svg'; link.href=canvas.toDataURL('image/svg+xml'); link.click(); };
-  window.exportPDF = ()=>{ const { jsPDF } = window.jspdf; const pdf = new jsPDF({orientation:'landscape', unit:'pt', format:[canvas.width,canvas.height]}); pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,canvas.width,canvas.height); pdf.save('schematic.pdf'); };
-  window.exportDXF=()=>alert('DXF export not implemented. Use svg2dxf externally.');
+  // Bus coords storage
+  const busCoords = [];
 
-  // POI BUS
-  ctx.strokeStyle='#000'; ctx.lineWidth=3;
-  ctx.beginPath(); ctx.moveTo(poiStart, poiY); ctx.lineTo(poiEnd, poiY); ctx.stroke();
-  ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText('POI BUS', poiStart, poiY-10);
-  // Generator
-  ctx.beginPath(); ctx.arc(midX, poiY-30, 10, 0, 2*Math.PI); ctx.stroke();
-  ctx.fillText('Generator', midX-30, poiY-45);
-  ctx.beginPath(); ctx.moveTo(midX, poiY-20); ctx.lineTo(midX, poiY); ctx.stroke();
-  // T-Line
-  ctx.beginPath(); ctx.moveTo(midX, poiY); ctx.lineTo(midX, gsuY); ctx.stroke();
-  ctx.fillText('T-Line', midX+10, (poiY+gsuY)/2);
+  // Helper
+  const drawLine=(x1,y1,x2,y2,clr='#000',w=2)=>{
+    ctx.strokeStyle=clr; ctx.lineWidth=w;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  };
 
-  // GSU HV BUS (match POI length)
-  ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
-  ctx.beginPath(); ctx.moveTo(poiStart, gsuY); ctx.lineTo(poiEnd, gsuY); ctx.stroke();
-  ctx.fillStyle='#000'; ctx.fillText('GSU HV BUS', poiStart, gsuY-10);
+  // Exports
+  window.exportSVG=()=>{ const a=document.createElement('a'); a.download='schematic.svg'; a.href=canvas.toDataURL('image/svg+xml'); a.click(); };
+  window.exportPDF=()=>{ const {jsPDF}=window.jspdf, pdf=new jsPDF({orientation:'landscape',unit:'pt',format:[canvas.width,canvas.height]}); pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,canvas.width,canvas.height); pdf.save('schematic.pdf'); };
+  window.exportDXF=()=>alert('DXF export not implemented');
 
-  // Connector line from GSU HV bus down to transformer top
-  ctx.strokeStyle='#2ecc71'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(midX, gsuY); ctx.lineTo(midX, xfmrTopY); ctx.stroke();
+  // ---------- POI BUS ----------
+  drawLine(poiStart,poiY,poiEnd,poiY,'#000',3);
+  ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText('POI BUS',poiStart,poiY-10);
+  busCoords.push({name:'POI BUS', x:poiStart - poiOrigin.x + 0.5*poiLen, y: 0});
 
-  // Transformer box
-  ctx.fillStyle='#2ecc71';
-  ctx.fillRect(midX-10, xfmrTopY, 20, xfmrHeight);
+  // Generator & T-Line
+  ctx.beginPath(); ctx.arc(midX,poiY-30,10,0,2*Math.PI); ctx.stroke();
+  ctx.fillText('Generator',midX-30,poiY-45);
+  drawLine(midX,poiY-20,midX,poiY);
+  drawLine(midX,poiY,midX,gsuY);
+  ctx.fillText('T-Line',midX+10,(poiY+gsuY)/2);
 
-  // Connector line from transformer bottom to Sub-MV bus
-  ctx.beginPath();
-  ctx.moveTo(midX, xfmrTopY + xfmrHeight);
-  ctx.lineTo(midX, mvY);
-  ctx.stroke();
+  // ---------- GSU HV BUS ----------
+  drawLine(poiStart,gsuY,poiEnd,gsuY,'#0a66c2',4);
+  ctx.fillStyle='#000'; ctx.fillText('GSU HV BUS',poiStart,gsuY-10);
+  busCoords.push({name:'GSU HV BUS', x:poiStart - poiOrigin.x + 0.5*poiLen, y: gsuY - poiOrigin.y});
 
-  // SUB-MV BUS
-  ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
-  ctx.beginPath(); ctx.moveTo(startX, mvY); ctx.lineTo(startX + feederConfig.length*feederSpacing, mvY); ctx.stroke();
-  ctx.fillStyle='#000'; ctx.fillText('SUB-MV BUS', startX, mvY-10);
+  // Transformer
+  const xfmrH=40,
+        xfmrTop=(gsuY+mvY)/2 - xfmrH/2;
+  drawLine(midX,gsuY,midX,xfmrTop,'#2ecc71',2);
+  ctx.fillStyle='#2ecc71'; ctx.fillRect(midX-10,xfmrTop,20,xfmrH);
+  drawLine(midX,xfmrTop+xfmrH,midX,mvY,'#2ecc71',2);
 
-  // Feeders
-  let invCtr=0, feederX=startX+40, feederSummary=[];
+  // ---------- SUB-MV BUS ----------
+  drawLine(startX,mvY,startX+feederConfig.length*feederSpacing,mvY,'#0a66c2',4);
+  ctx.fillStyle='#000'; ctx.fillText('SUB-MV BUS',startX,mvY-10);
+  busCoords.push({name:'SUB-MV BUS', x:startX - poiOrigin.x + 0.5*feederConfig.length*feederSpacing, y: mvY - poiOrigin.y});
+
+  // ---------- Feeders ----------
+  let invCtr=0, feederX=startX+40;
   feederConfig.forEach((cnt,idx)=>{
-    const bottomY = mvY + cnt*verticalSpacing;
-    // Feeder drop
-    ctx.strokeStyle='#444'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(feederX, mvY); ctx.lineTo(feederX, bottomY); ctx.stroke();
+    const bottomY=mvY+cnt*verticalSpacing;
+    drawLine(feederX,mvY,feederX,bottomY,'#444',2);
 
-    for(let j=0; j<cnt; j++){
-      const y = mvY + (j+1)*verticalSpacing,
-            invName = `INV${1001+invCtr}`,
-            tapX = feederX;
+    for(let j=0;j<cnt;j++){
+      const y=mvY+(j+1)*verticalSpacing,
+            invName=`INV${1001+invCtr}`,
+            tapX=feederX;
 
-      // Branch tap
-      ctx.strokeStyle='#0a66c2';
-      ctx.beginPath(); ctx.moveTo(tapX, y); ctx.lineTo(tapX+branchLength, y); ctx.stroke();
+      // MV node
+      drawLine(tapX,y,tapX+branchLength,y,'#0a66c2',2);
+      ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(tapX,y,4,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle='#000'; ctx.font='10px Inter'; ctx.fillText(invName,tapX-55,y-10);
+      busCoords.push({name:invName, x:tapX-poiOrigin.x, y: y-poiOrigin.y});
 
-      // MV dot & label
-      ctx.fillStyle='red';
-      ctx.beginPath(); ctx.arc(tapX, y, 4, 0, 2*Math.PI); ctx.fill();
-      ctx.fillStyle='#000'; ctx.font='10px Inter';
-      ctx.fillText(invName, tapX-55, y-10);
+      // Padmount
+      ctx.fillStyle='#2ecc71'; ctx.fillRect(tapX+branchLength,y-10,20,20);
 
-      // Padmount transformer
-      ctx.fillStyle='#2ecc71';
-      ctx.fillRect(tapX+branchLength, y-10, 20, 20);
+      // LV node
+      const tX=tapX+branchLength+10,
+            lvTop=y+10, lvBot=y+40, lvMid=(lvTop+lvBot)/2;
+      drawLine(tX,lvTop,tX,lvBot,'#ff9900',2);
+      ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(tX,lvMid,4,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle='#000'; ctx.fillText(`${invName}_LV`,tX+10,lvMid+10);
+      busCoords.push({name:`${invName}_LV`, x:tX-poiOrigin.x, y: lvMid-poiOrigin.y});
 
-      // LV line
-      const tX = tapX+branchLength+10,
-            lvTop = y+10, lvBot = y+40, lvMid = (lvTop+lvBot)/2;
-      ctx.strokeStyle='#ff9900';
-      ctx.beginPath(); ctx.moveTo(tX, lvTop); ctx.lineTo(tX, lvBot); ctx.stroke();
-
-      // LV dot & label
-      ctx.fillStyle='blue';
-      ctx.beginPath(); ctx.arc(tX, lvMid, 4, 0, 2*Math.PI); ctx.fill();
-      ctx.fillStyle='#000';
-      ctx.fillText(`${invName}_LV`, tX+10, lvMid+10);
-
-      // Inverter
-      ctx.fillStyle='#ffcc00';
-      ctx.fillRect(tapX+branchLength-2, lvBot, 24, 24);
-      ctx.fillStyle='#000';
-      ctx.fillText(`I${invCtr+1}`, tapX+branchLength-5, lvBot+35);
+      // Inverter box
+      ctx.fillStyle='#ffcc00'; ctx.fillRect(tapX+branchLength-2,lvBot,24,24);
+      ctx.fillStyle='#000'; ctx.fillText(`I${invCtr+1}`,tapX+branchLength-5,lvBot+35);
 
       // Optional load
       if(parsedLayout[invCtr].hasLoad){
         ctx.fillStyle='#ff4444';
-        ctx.beginPath(); ctx.arc(tX+20, lvBot+12, 5, 0, 2*Math.PI); ctx.fill();
+        ctx.beginPath(); ctx.arc(tX+20,lvBot+12,5,0,2*Math.PI); ctx.fill();
       }
 
       invCtr++;
     }
 
-    // Feeder label 11A,11B...
-    const base = 11 + Math.floor(idx/2),
-          suf  = idx%2===0 ? 'A' : 'B',
-          flbl = `${base}${suf}`;
-    ctx.fillStyle='#000';
-    ctx.fillText(flbl, feederX-10, bottomY+30);
-    feederSummary.push(`Feeder ${flbl}: ${cnt} Inverters, Z=${(cnt*(parsedLayout[0]?.impedance||0)).toFixed(2)} pu`);
-    feederX += feederSpacing;
+    // Feeder label
+    const base=11+Math.floor(idx/2),
+          suf=idx%2?'B':'A',
+          flbl=`${base}${suf}`;
+    ctx.fillStyle='#000'; ctx.fillText(flbl,feederX-10,bottomY+30);
+    feederX+=feederSpacing;
   });
 
-  // Legend & summary
+  // ---------- Legend ----------
   if(document.getElementById('showLegend').checked){
     const legendX=1400, legendY=100,
           items=[['Red Dot','MV Bus Point'],['Green Box','Transformer'],['Blue Dot','LV Bus Point'],['Yellow Box','Inverter'],['Red Circle','LV Load']];
     ctx.fillStyle='#000'; ctx.font='14px Inter'; ctx.fillText('Legend',legendX,legendY);
     items.forEach((it,i)=>{
       const y=legendY+20+i*20;
-      ctx.fillStyle= it[0].includes('Red') ? 'red'
-                    : it[0].includes('Green') ? '#2ecc71'
-                    : it[0].includes('Blue') ? 'blue'
-                    : '#ffcc00';
+      ctx.fillStyle=it[0].includes('Red')?'red':it[0].includes('Green')?'#2ecc71':it[0].includes('Blue')?'blue':'#ffcc00';
       if(it[0].includes('Dot')){
         ctx.beginPath(); ctx.arc(legendX+10,y-4,5,0,2*Math.PI); ctx.fill();
       } else {
@@ -268,7 +265,16 @@ function drawVerticalRootLayout(feederConfig) {
       }
       ctx.fillStyle='#000'; ctx.fillText(it[1],legendX+25,y);
     });
-    feederSummary.forEach((ln,i)=> ctx.fillText(ln,legendX,legendY+160+i*20));
+  }
+
+  // ---------- Show Coordinates ----------
+  const pane=document.getElementById('coordPane');
+  if(document.getElementById('showCoords').checked){
+    pane.textContent = busCoords
+      .map(b => `${b.name.padEnd(12)} (${b.x.toFixed(0).padStart(4)}, ${b.y.toFixed(0).padStart(4)})`)
+      .join('\n');
+  } else {
+    pane.textContent = 'Bus coordinates will appear here when you check “Show Bus Coordinates” and hit Generate.';
   }
 }
 </script>
