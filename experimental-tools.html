@@ -28,10 +28,7 @@
       cursor: grab;
     }
     #canvasContainer.grabbing { cursor: grabbing; }
-    canvas {
-      transform-origin: 0 0;
-      display: block;
-    }
+    canvas { transform-origin: 0 0; display: block; }
     #coordPane {
       margin-top:10px; padding:10px;
       background:#fff; border:1px solid #ccc;
@@ -94,25 +91,25 @@
 </main>
 
 <script>
-  // Data & state
-  let parsedLayout = [], 
+  let parsedLayout = [],
       poiOrigin    = { x:0, y:0 },
       busCoords    = [];
 
-  // Canvas & Transform state
-  const container = document.getElementById('canvasContainer');
-  const canvas    = document.getElementById('schematicCanvas');
-  const ctx       = canvas.getContext('2d');
+  const container = document.getElementById('canvasContainer'),
+        canvas    = document.getElementById('schematicCanvas'),
+        ctx       = canvas.getContext('2d'),
+        slider    = document.getElementById('zoomSlider');
+
   let scale = 1, panX = 0, panY = 0;
   let isPanning = false, startX = 0, startY = 0;
-  const slider = document.getElementById('zoomSlider');
 
-  // Transform helpers
+  // ─── pan/zoom helpers ───────────────────────────────────────────────
+
   function updateTransform() {
     canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
   }
   function resetView() {
-    scale = 1; panX = 0; panY = 0;
+    scale = 1; panX = panY = 0;
     updateTransform();
     slider.value = scale;
   }
@@ -127,7 +124,6 @@
   function zoomOut() { zoomTo(Math.max(scale * 0.9, 0.1)); }
   slider.addEventListener('input', e => zoomTo(parseFloat(e.target.value)));
 
-  // Mouse & touch interactions
   container.addEventListener('wheel', e => {
     e.preventDefault();
     const delta = -e.deltaY * 0.001;
@@ -147,26 +143,9 @@
   document.addEventListener('mouseup', () => {
     isPanning = false; container.classList.remove('grabbing');
   });
-  container.addEventListener('touchstart', e => {
-    if (e.touches.length === 1) {
-      isPanning = true;
-      const t = e.touches[0];
-      startX = t.clientX - panX; startY = t.clientY - panY;
-    }
-  }, { passive: false });
-  container.addEventListener('touchmove', e => {
-    if (e.touches.length === 1 && isPanning) {
-      const t = e.touches[0];
-      panX = t.clientX - startX; panY = t.clientY - startY;
-      updateTransform();
-    }
-    e.preventDefault();
-  }, { passive: false });
-  container.addEventListener('touchend', () => {
-    isPanning = false; container.classList.remove('grabbing');
-  });
 
-  // Main generation logic
+  // ─── main generation ────────────────────────────────────────────────
+
   function generateCollector() {
     const total      = parseInt(document.getElementById('total').value);
     if (!total || total <= 0) return alert('Enter total inverters');
@@ -177,41 +156,46 @@
     const impedance  = parseFloat(document.getElementById('impedance').value);
     const lvLoad     = document.getElementById('lvLoad').checked;
 
-    // Build feeder config
+    // build feederConfig…
     let feederConfig = [], remaining = total;
     if (custom) {
       feederConfig = custom.split(',').map(n=>parseInt(n)).filter(n=>!isNaN(n));
-      let sum = feederConfig.reduce((a,b)=>a+b,0);
+      let sum = feederConfig.reduce((a,b)=>a+b, 0);
       if (sum < total) {
         let rem = total - sum;
         while(rem-->0) feederConfig.push(1);
       } else if (sum > total) {
-        let run = 0;
+        let run=0;
         feederConfig = feederConfig.filter(n => {
-          if (run + n <= total) { run+=n; return true; }
+          if (run+n <= total) { run+=n; return true; }
           if (run < total)     { feederConfig.push(total-run); run=total; return true; }
           return false;
         });
       }
     } else {
-      while (remaining > 0) {
+      while(remaining>0) {
         const cnt = Math.min(perFeeder||total, remaining);
-        feederConfig.push(cnt); remaining -= cnt;
+        feederConfig.push(cnt);
+        remaining -= cnt;
       }
     }
 
-    // Build layout array
+    // build parsedLayout…
     parsedLayout = [];
     let idx = 1;
     feederConfig.forEach((cnt,i) => {
-      for (let j=0; j<cnt; j++) {
-        parsedLayout.push({ feeder: i+1, inverter: idx++, capacitor, voltage, impedance, hasLoad: lvLoad });
+      for(let j=0;j<cnt;j++){
+        parsedLayout.push({
+          feeder:   i+1,
+          inverter: idx++,
+          capacitor, voltage, impedance,
+          hasLoad: lvLoad
+        });
       }
     });
 
-    // Draw and fit-to-container
     drawVerticalRootLayout(feederConfig);
-    fitToContainer();
+    fitToContainer();  // uses each padWidth/padHeight dynamically
   }
 
   function drawVerticalRootLayout(feederConfig) {
@@ -219,120 +203,186 @@
     ctx.clearRect(0,0,canvas.width,canvas.height);
     updateTransform();
 
-    busCoords = [];  // reset global
+    busCoords = [];
 
-    const startX       = 100, poiY = 100, gsuY = poiY+80, mvY = gsuY+80;
-    const feederSpacing= 180, verticalSpacing = 100, branchLength = 50;
-    const midX         = startX + (feederConfig.length*feederSpacing)/2;
-    const poiLen       = 200, poiStart = midX-poiLen/2, poiEnd = midX+poiLen/2;
+    // layout constants
+    const startX        = 100;
+    const poiY          = 100;
+    const gsuY          = poiY + 80;
+    const mvY           = gsuY + 80;
+    const feederSpacing = 180;
+    const verticalSpacing = 100;
+    const branchLength  = 50;
+    const poiLen        = 200;
+    const midX          = startX + (feederConfig.length * feederSpacing)/2;
+    const poiStart      = midX - poiLen/2;
+    const poiEnd        = midX + poiLen/2;
     poiOrigin = { x: midX, y: poiY };
 
+    // helper to draw a line
     const drawLine = (x1,y1,x2,y2,clr='#000',w=2) => {
       ctx.save(); ctx.strokeStyle=clr; ctx.lineWidth=w;
       ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
       ctx.restore();
     };
 
-    // POI BUS
-    drawLine(poiStart,poiY,poiEnd,poiY,'#000',3);
+    // ── POI BUS ────────────────────────────────────────────────────
+    drawLine(poiStart, poiY, poiEnd, poiY, '#000', 3);
     ctx.save(); ctx.fillStyle='#000'; ctx.font='12px Inter';
-    ctx.fillText('POI BUS', poiStart, poiY-10); ctx.restore();
-    busCoords.push({ name:'POI BUS', x: poiStart-poiOrigin.x + poiLen/2, y: 0 });
+    ctx.fillText('POI BUS', poiStart, poiY-10);
+    ctx.restore();
+    busCoords.push({
+      name: 'POI BUS',
+      x: poiStart - poiOrigin.x + poiLen/2,
+      y: 0,
+      padWidth: poiLen/2,
+      padHeight: 0
+    });
 
-    // Generator & T-Line
-    ctx.save(); ctx.beginPath(); ctx.arc(midX,poiY-30,10,0,2*Math.PI);
-    ctx.stroke(); ctx.fillText('Generator',midX-30,poiY-45); ctx.restore();
-    drawLine(midX,poiY-20,midX,poiY);
-    drawLine(midX,poiY,midX,gsuY);
-    ctx.save(); ctx.fillText('T-Line',midX+10,(poiY+gsuY)/2); ctx.restore();
+    // ── Generator & T-Line ────────────────────────────────────────
+    ctx.save();
+      ctx.beginPath(); ctx.arc(midX, poiY-30, 10,0,2*Math.PI);
+      ctx.stroke();
+      ctx.fillText('Generator', midX-30, poiY-45);
+    ctx.restore();
+    drawLine(midX, poiY-20, midX, poiY);
+    drawLine(midX, poiY, midX, gsuY);
+    ctx.save(); ctx.fillText('T-Line', midX+10, (poiY+gsuY)/2); ctx.restore();
 
-    // GSU HV BUS & Transformer
-    drawLine(poiStart,gsuY,poiEnd,gsuY,'#0a66c2',4);
-    ctx.save(); ctx.fillText('GSU HV BUS',poiStart,gsuY-10); ctx.restore();
-    busCoords.push({ name:'GSU HV BUS', x: poiStart-poiOrigin.x + poiLen/2, y: gsuY-poiOrigin.y });
+    // ── GSU HV BUS & Transformer ─────────────────────────────────
+    drawLine(poiStart, gsuY, poiEnd, gsuY, '#0a66c2', 4);
+    ctx.save(); ctx.fillText('GSU HV BUS', poiStart, gsuY-10); ctx.restore();
+    const xfmrH = 40;
+    busCoords.push({
+      name: 'GSU HV BUS',
+      x: poiStart - poiOrigin.x + poiLen/2,
+      y: gsuY - poiOrigin.y,
+      padWidth: poiLen/2,
+      padHeight: xfmrH/2
+    });
 
-    const xfmrH = 40, xfmrTop = (gsuY+mvY)/2 - xfmrH/2;
-    drawLine(midX,gsuY,midX,xfmrTop,'#2ecc71',2);
+    // transformer body
+    const xfmrTop = (gsuY + mvY)/2 - xfmrH/2;
+    drawLine(midX, gsuY, midX, xfmrTop, '#2ecc71', 2);
     ctx.save(); ctx.fillStyle='#2ecc71';
-    ctx.fillRect(midX-10,xfmrTop,20,xfmrH); ctx.restore();
-    drawLine(midX,xfmrTop+xfmrH,midX,mvY,'#2ecc71',2);
+      ctx.fillRect(midX-10, xfmrTop, 20, xfmrH);
+    ctx.restore();
+    drawLine(midX, xfmrTop+xfmrH, midX, mvY, '#2ecc71', 2);
 
-    // SUB-MV BUS
-    drawLine(startX,mvY,startX+feederConfig.length*feederSpacing,mvY,'#0a66c2',4);
-    ctx.save(); ctx.fillText('SUB-MV BUS',startX,mvY-10); ctx.restore();
-    busCoords.push({ name:'SUB-MV BUS', x: startX-poiOrigin.x + feederConfig.length*feederSpacing/2, y: mvY-poiOrigin.y });
+    // ── SUB-MV BUS ────────────────────────────────────────────────
+    const subMvLen = feederConfig.length * feederSpacing;
+    drawLine(startX, mvY, startX+subMvLen, mvY, '#0a66c2', 4);
+    ctx.save(); ctx.fillText('SUB-MV BUS', startX, mvY-10); ctx.restore();
+    busCoords.push({
+      name: 'SUB-MV BUS',
+      x: startX - poiOrigin.x + subMvLen/2,
+      y: mvY - poiOrigin.y,
+      padWidth: subMvLen/2,
+      padHeight: 0
+    });
 
-    // Feeders & Inverters
-    let invCtr=0, feederX = startX+40;
-    feederConfig.forEach((cnt,idx) => {
-      const bottomY = mvY + cnt*verticalSpacing;
-      drawLine(feederX,mvY,feederX,bottomY,'#444',2);
-      for (let j=0; j<cnt; j++) {
+    // ── FEEDERS & INVERTERS ───────────────────────────────────────
+    let invCtr = 0,
+        feederX = startX + 40;
+
+    feederConfig.forEach((cnt, idx) => {
+      const bottomY = mvY + cnt * verticalSpacing;
+      drawLine(feederX, mvY, feederX, bottomY, '#444', 2);
+
+      for (let j = 0; j < cnt; j++) {
         const y = mvY + (j+1)*verticalSpacing;
-        const invName = `INV${1001+invCtr}`;
-        // MV node
-        drawLine(feederX,y,feederX+branchLength,y,'#0a66c2',2);
-        ctx.save(); ctx.fillStyle='red';
-        ctx.beginPath(); ctx.arc(feederX,y,4,0,2*Math.PI); ctx.fill();
-        ctx.fillText(invName,feederX-55,y-10); ctx.restore();
-        busCoords.push({ name:invName, x: feederX-poiOrigin.x, y: y-poiOrigin.y });
+        const invName = `INV${1001 + invCtr}`;
 
-        // Padmount transformer
+        // MV node & label
+        drawLine(feederX, y, feederX + branchLength, y, '#0a66c2', 2);
+        ctx.save(); ctx.fillStyle='red';
+          ctx.beginPath(); ctx.arc(feederX, y, 4,0,2*Math.PI); ctx.fill();
+          ctx.fillText(invName, feederX-55, y-10);
+        ctx.restore();
+        busCoords.push({
+          name: invName,
+          x: feederX - poiOrigin.x,
+          y: y - poiOrigin.y,
+          padWidth: branchLength + 12,   // picks up the inverter box too
+          padHeight: verticalSpacing/2   // half‐spacing covers padmount + box
+        });
+
+        // padmount transformer
         ctx.save(); ctx.fillStyle='#2ecc71';
-        ctx.fillRect(feederX+branchLength,y-10,20,20); ctx.restore();
+          ctx.fillRect(feederX + branchLength, y-10, 20, 20);
+        ctx.restore();
 
         // LV node & inverter box
-        const tX = feederX+branchLength+10;
-        const lvTop = y+10, lvBot = y+40, lvMid = (lvTop+lvBot)/2;
-        drawLine(tX,lvTop,tX,lvBot,'#ff9900',2);
+        const tX = feederX + branchLength + 10;
+        const lvTop = y+10, lvBot = y+40, lvMid = (lvTop + lvBot)/2;
+        drawLine(tX, lvTop, tX, lvBot, '#ff9900', 2);
         ctx.save(); ctx.fillStyle='blue';
-        ctx.beginPath(); ctx.arc(tX,lvMid,4,0,2*Math.PI); ctx.fill();
-        ctx.fillText(`${invName}_LV`,tX+10,lvMid+10); ctx.restore();
-        busCoords.push({ name:`${invName}_LV`, x: tX-poiOrigin.x, y: lvMid-poiOrigin.y });
+          ctx.beginPath(); ctx.arc(tX, lvMid, 4,0,2*Math.PI); ctx.fill();
+          ctx.fillText(`${invName}_LV`, tX+10, lvMid+10);
+        ctx.restore();
+        busCoords.push({
+          name: `${invName}_LV`,
+          x: tX - poiOrigin.x,
+          y: lvMid - poiOrigin.y,
+          padWidth: 12,    // inverter box half‐width
+          padHeight: 12    // inverter box half‐height
+        });
 
+        // inverter box label
         ctx.save(); ctx.fillStyle='#ffcc00';
-        ctx.fillRect(feederX+branchLength-2,lvBot,24,24); ctx.restore();
+          ctx.fillRect(feederX+branchLength-2, lvBot, 24, 24);
+        ctx.restore();
         ctx.save(); ctx.fillStyle='#000';
-        ctx.fillText(`I${invCtr+1}`, feederX+branchLength-5, lvBot+35); ctx.restore();
+          ctx.fillText(`I${invCtr+1}`, feederX+branchLength-5, lvBot+35);
+        ctx.restore();
 
+        // optional LV load marker
         if (parsedLayout[invCtr].hasLoad) {
           ctx.save(); ctx.fillStyle='#ff4444';
-          ctx.beginPath(); ctx.arc(tX+20,lvBot+12,5,0,2*Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(tX+20, lvBot+12, 5,0,2*Math.PI); ctx.fill();
           ctx.restore();
         }
+
         invCtr++;
       }
 
-      // Feeder label
+      // feeder label (e.g. 11A, 11B…)
       const base = 11 + Math.floor(idx/2),
-            suf  = idx%2 ? 'B' : 'A',
+            suf  = (idx%2)?'B':'A',
             flbl = `${base}${suf}`;
       ctx.save(); ctx.fillText(flbl, feederX-10, bottomY+30); ctx.restore();
+
       feederX += feederSpacing;
     });
 
-    // Legend
+    // ── LEGEND ─────────────────────────────────────────────────────
     if (document.getElementById('showLegend').checked) {
-      const legendX=1400, legendY=100;
-      const items=[['Red Dot','MV Bus Point'],['Green Box','Transformer'],['Blue Dot','LV Bus Point'],
-                   ['Yellow Box','Inverter'],['Red Circle','LV Load']];
-      ctx.save(); ctx.fillText('Legend',legendX,legendY); ctx.restore();
-      items.forEach((it,i) => {
-        const y = legendY + 20 + i*20;
-        const clr = it[0].includes('Red')   ? 'red'
-                  : it[0].includes('Green') ? '#2ecc71'
-                  : it[0].includes('Blue')  ? 'blue'
-                  : '#ffcc00';
+      const lx = 1400, ly = 100;
+      const items = [
+        ['Red Dot','MV Bus Point'],
+        ['Green Box','Transformer'],
+        ['Blue Dot','LV Bus Point'],
+        ['Yellow Box','Inverter'],
+        ['Red Circle','LV Load']
+      ];
+      ctx.save(); ctx.fillText('Legend', lx, ly); ctx.restore();
+      items.forEach(([shape,txt],i) => {
+        const y = ly + 20 + i*20;
+        const clr = shape.includes('Red')   ? 'red'
+                  : shape.includes('Green') ? '#2ecc71'
+                  : shape.includes('Blue')  ? 'blue'
+                  :                         '#ffcc00';
         ctx.save(); ctx.fillStyle=clr;
-        if (it[0].includes('Dot')) ctx.beginPath(), ctx.arc(legendX+10,y-4,5,0,2*Math.PI), ctx.fill();
-        else                      ctx.fillRect(legendX+3,y-10,14,14);
+        if (shape.includes('Dot')) ctx.beginPath(), ctx.arc(lx+10,y-4,5,0,2*Math.PI), ctx.fill();
+        else                       ctx.fillRect(lx+3,y-10,14,14);
         ctx.restore();
         ctx.save(); ctx.fillStyle='#000';
-        ctx.fillText(it[1], legendX+25, y); ctx.restore();
+        ctx.fillText(txt, lx+25, y);
+        ctx.restore();
       });
     }
 
-    // Coordinates pane
+    // ── COORDINATES PANE ────────────────────────────────────────────
     const pane = document.getElementById('coordPane');
     if (document.getElementById('showCoords').checked) {
       pane.textContent = busCoords
@@ -343,30 +393,39 @@
     }
   }
 
-  // Auto-scale & center so everything fits in view
+  // ─── FUTURE-PROOF FITTOCONTAINER ────────────────────────────────
+  // expands each point by its padWidth/padHeight before bounding
   function fitToContainer(margin = 20) {
     if (!busCoords.length) return;
-    const abs = busCoords.map(b => ({
-      x: b.x + poiOrigin.x,
-      y: b.y + poiOrigin.y
-    }));
-    const xs = abs.map(p => p.x), ys = abs.map(p => p.y);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const contentW = maxX - minX + margin*2;
-    const contentH = maxY - minY + margin*2;
-    const cw = container.clientWidth, ch = container.clientHeight;
-    const newScale = Math.min(cw / contentW, ch / contentH);
+    // compute absolute positions
+    const allX = [], allY = [];
+    busCoords.forEach(p => {
+      const absX = p.x + poiOrigin.x,
+            absY = p.y + poiOrigin.y;
+      allX.push(absX - p.padWidth, absX + p.padWidth);
+      allY.push(absY - p.padHeight, absY + p.padHeight);
+    });
 
-    panX = (cw  - contentW*newScale)/2 - (minX - margin)*newScale;
-    panY = (ch  - contentH*newScale)/2 - (minY - margin)*newScale;
+    const minX = Math.min(...allX),
+          maxX = Math.max(...allX),
+          minY = Math.min(...allY),
+          maxY = Math.max(...allY);
+
+    const contentW = (maxX - minX) + margin*2,
+          contentH = (maxY - minY) + margin*2;
+    const cw = container.clientWidth,
+          ch = container.clientHeight;
+    const newScale = Math.min(cw/contentW, ch/contentH);
+
+    panX = (cw - contentW*newScale)/2 - (minX - margin)*newScale;
+    panY = (ch - contentH*newScale)/2 - (minY - margin)*newScale;
     scale = newScale;
 
     updateTransform();
     slider.value = scale;
   }
 
-  // Export helpers
+  // ─── EXPORT HELPERS ─────────────────────────────────────────────
   window.exportSVG = () => {
     const a = document.createElement('a');
     a.download = 'schematic.svg';
@@ -376,9 +435,9 @@
   window.exportPDF = () => {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({
-      orientation: 'landscape',
-      unit: 'pt',
-      format: [canvas.width, canvas.height]
+      orientation:'landscape',
+      unit:'pt',
+      format:[canvas.width, canvas.height]
     });
     pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
     pdf.save('schematic.pdf');
