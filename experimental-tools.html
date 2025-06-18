@@ -116,7 +116,7 @@ function drawLayout(feederConfig){
   ctx.beginPath();ctx.arc(900,baseY+80,10,0,2*Math.PI);ctx.fill();ctx.fillText("GSU HV BUS",915,baseY+85);
   ctx.beginPath();ctx.arc(900,baseY+160,10,0,2*Math.PI);ctx.fill();ctx.fillText("SUB-MV BUS",915,baseY+165);
   ctx.restore();
-  let invCounter = 0, invLocs = [];
+  let invCounter = 0;
   for(let f=0; f<feederConfig.length; f++){
     const nInv = feederConfig[f];
     const colX = startX + f*sx;
