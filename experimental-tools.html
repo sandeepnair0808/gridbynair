@@ -4,43 +4,22 @@
   <meta charset="UTF-8" />
   <title>Solar Farm Collector Designer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background: #f0f8ff;
-      margin: 0;
-    }
-    main {
-      padding: 20px;
-      max-width: 1800px;
-      margin: auto;
-    }
-    label {
-      display: block;
-      margin: 10px 0 4px;
-      font-weight: 600;
-    }
+    body { font-family: 'Inter', sans-serif; background: #f0f8ff; margin: 0; }
+    main { padding: 20px; max-width: 1800px; margin: auto; }
+    label { display: block; margin: 10px 0 4px; font-weight: 600; }
     input, textarea {
-      width: 300px;
-      padding: 8px;
-      margin-bottom: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      width: 300px; padding: 8px; margin-bottom: 10px;
+      border-radius: 6px; border: 1px solid #ccc;
     }
     button {
-      margin: 10px 10px 0 0;
-      padding: 10px 16px;
-      background: #0a66c2;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      margin: 10px 10px 0 0; padding: 10px 16px;
+      background: #0a66c2; color: #fff; border: none;
+      border-radius: 6px; cursor: pointer;
     }
-    button:hover {
-      background: #004a99;
-    }
+    button:hover { background: #004a99; }
     canvas {
       border: 1px solid #ccc;
       margin-top: 20px;
@@ -51,41 +30,28 @@
 <body>
 <main>
   <h1>⚡ Solar Farm Collector Designer</h1>
-
   <label>Total Inverters</label>
   <input type="number" id="total" placeholder="e.g., 40" />
-
   <label>Default Inverters per Feeder</label>
   <input type="number" id="perFeeder" placeholder="e.g., 8" />
-
   <label>Custom Feeder Configuration</label>
   <textarea id="customFeeder" placeholder="e.g., 4,4,4,4"></textarea>
-
   <label>Capacitor Bank (kVAR)</label>
   <input type="number" id="capacitor" placeholder="e.g., 500" />
-
   <label>Voltage (kV)</label>
   <input type="number" id="voltage" placeholder="e.g., 33" />
-
   <label>Impedance (Z pu)</label>
   <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01" />
 
-  <div>
-    <input type="checkbox" id="lvLoad" />
-    <label for="lvLoad">Add Load on LV side</label>
-  </div>
-
-  <div>
-    <input type="checkbox" id="showLegend" checked />
-    <label for="showLegend">Show Legend</label>
-  </div>
+  <div><input type="checkbox" id="lvLoad" /><label for="lvLoad">Add Load on LV side</label></div>
+  <div><input type="checkbox" id="showLegend" checked /><label for="showLegend">Show Legend</label></div>
 
   <button onclick="generateCollector()">Generate</button>
   <button onclick="exportSVG()">Export SVG</button>
   <button onclick="exportPDF()">Export PDF</button>
   <button onclick="exportDXF()">Export DXF</button>
 
-  <canvas id="schematicCanvas" width="1800" height="2000"></canvas>
+  <canvas id="schematicCanvas" width="1800" height="2200"></canvas>
 </main>
 
 <script>
@@ -158,7 +124,10 @@ function drawVerticalRootLayout(feederConfig) {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const startX = 100, topBusY = 100, feederSpacing = 180, verticalSpacing = 100, branchLength = 50;
+  const startX = 100, topY = 100;
+  const verticalSpacing = 100, feederSpacing = 180, branchLength = 50;
+  const poiY = topY, gsuY = poiY + 80, mvY = gsuY + 80;
+
   const legendX = 1400, legendY = 100;
   let invCounter = 0, feederX = startX + 40;
   let feederSummary = [];
@@ -170,7 +139,6 @@ function drawVerticalRootLayout(feederConfig) {
     link.href = svgData;
     link.click();
   };
-
   window.exportPDF = () => {
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
@@ -178,34 +146,69 @@ function drawVerticalRootLayout(feederConfig) {
     pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
     pdf.save('solar_farm_schematic.pdf');
   };
-
   window.exportDXF = () => {
     alert('DXF export not implemented. Use svg2dxf externally.');
   };
 
+  const midX = startX + (feederConfig.length * feederSpacing) / 2;
+
+  // POI Bus and Generator
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(startX, poiY);
+  ctx.lineTo(startX + feederSpacing * feederConfig.length, poiY);
+  ctx.stroke();
+  ctx.font = '12px Inter';
+  ctx.fillStyle = '#000';
+  ctx.fillText('POI BUS', startX, poiY - 10);
+  ctx.beginPath();
+  ctx.arc(midX, poiY - 30, 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillText('Generator', midX - 20, poiY - 40);
+
+  // T-Line
+  ctx.beginPath();
+  ctx.moveTo(midX, poiY);
+  ctx.lineTo(midX, gsuY);
+  ctx.stroke();
+  ctx.fillText('T-Line', midX + 10, (poiY + gsuY) / 2);
+
+  // GSU HV Bus
+  ctx.beginPath();
+  ctx.moveTo(startX, gsuY);
+  ctx.lineTo(startX + feederSpacing * feederConfig.length, gsuY);
+  ctx.stroke();
+  ctx.fillText('GSU HV BUS', startX, gsuY - 10);
+
+  // GSU Transformer
+  ctx.fillStyle = '#2ecc71';
+  ctx.fillRect(midX - 10, gsuY, 20, 40);
+
+  // Sub-MV Bus
   ctx.strokeStyle = '#0a66c2';
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(startX, topBusY);
-  ctx.lineTo(startX + feederSpacing * feederConfig.length, topBusY);
+  ctx.moveTo(startX, mvY);
+  ctx.lineTo(startX + feederSpacing * feederConfig.length, mvY);
   ctx.stroke();
   ctx.fillStyle = '#000';
-  ctx.font = '12px Inter';
-  ctx.fillText('MAIN MV BUS', startX, topBusY - 10);
+  ctx.fillText('SUB-MV BUS', startX, mvY - 10);
 
+  // Feeders
   feederConfig.forEach((invCount, fIdx) => {
-    const feederBottomY = topBusY + invCount * verticalSpacing;
+    const feederBottomY = mvY + invCount * verticalSpacing;
     let totalImpedance = 0, power = 0;
 
     ctx.strokeStyle = '#444';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(feederX, topBusY);
+    ctx.moveTo(feederX, mvY);
     ctx.lineTo(feederX, feederBottomY);
     ctx.stroke();
 
     for (let j = 0; j < invCount; j++) {
-      const y = topBusY + (j + 1) * verticalSpacing;
+      const y = mvY + (j + 1) * verticalSpacing;
       const invName = `INV${1001 + invCounter}`;
 
       ctx.strokeStyle = '#0a66c2';
@@ -256,9 +259,12 @@ function drawVerticalRootLayout(feederConfig) {
       invCounter++;
     }
 
+    const base = 11 + Math.floor(fIdx / 2);
+    const suffix = fIdx % 2 === 0 ? 'A' : 'B';
+    const feederLabel = `${base}${suffix}`;
     ctx.fillStyle = '#000';
-    ctx.fillText(`Feeder ${fIdx + 1}`, feederX - 10, feederBottomY + 30);
-    feederSummary.push(`Feeder ${fIdx + 1}: ${invCount} Inverters, Impedance=${totalImpedance.toFixed(2)} pu, Power=${power} units`);
+    ctx.fillText(feederLabel, feederX - 10, feederBottomY + 30);
+    feederSummary.push(`Feeder ${feederLabel}: ${invCount} Inverters, Z=${totalImpedance.toFixed(2)} pu`);
     feederX += feederSpacing;
   });
 
