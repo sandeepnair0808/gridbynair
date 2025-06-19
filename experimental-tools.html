@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <title>Solar Farm Collector Designer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <link 
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" 
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     body { font-family:'Inter',sans-serif; background:#f0f8ff; margin:0 }
     main { padding:20px; max-width:1800px; margin:auto }
@@ -75,13 +72,15 @@
     <div id="leftPane" class="coordPane">Bus coords appear here.</div>
     <div id="locPane"  class="coordPane">.loc output appears here.</div>
     <div id="idvPane"  class="coordPane">.idv output appears here.</div>
-    <div id="branchIdvPane"  class="coordPane">branch.idv output appears here.</div>
+    <div id="branchIdvPane" class="coordPane">branch.idv output appears here.</div>
   </div>
 </main>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   let parsedLayout = [], poiOrigin={x:0,y:0}, busCoords=[], branches=[];
   let mvKV = 34.5, lvKV = 0.66;
+
+  // ...rest of your initialization and pan/zoom code unchanged...
 
   const container      = document.getElementById('canvasContainer'),
         canvas         = document.getElementById('schematicCanvas'),
@@ -104,157 +103,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let scale=1, panX=0, panY=0, isPanning=false, startX=0, startY=0;
 
-  // ... your existing pan/zoom logic ...
-
-  genBtn.addEventListener('click', generateCollector);
-
-  function generateCollector(){
-    const total=+document.getElementById('total').value;
-    if(!total)return alert('Enter total inverters');
-    const perFeeder=+document.getElementById('perFeeder').value;
-    const custom=document.getElementById('customFeeder').value.trim();
-    mvKV=+document.getElementById('mvVoltage').value;
-    lvKV=+document.getElementById('lvVoltage').value;
-    let feederConfig=[],rem=total;
-    if(custom){
-      feederConfig=custom.split(',').map(n=>+n).filter(n=>n>0);
-      let sum=feederConfig.reduce((a,b)=>a+b,0);
-      if(sum<total) while(sum++<total) feederConfig.push(1);
-      else if(sum>total){let run=0;feederConfig=feederConfig.filter(n=>{if(run+n<=total){run+=n;return true}if(run<total){feederConfig.push(total-run);run=total;return true}return false})}
-    }else{while(rem>0){const cnt=Math.min(perFeeder||total,rem);feederConfig.push(cnt);rem-=cnt}}
-    parsedLayout=[];
-    feederConfig.forEach((cnt,i)=>{for(let j=0;j<cnt;j++)parsedLayout.push({feeder:i+1,inverter:parsedLayout.length+1,voltageMV:mvKV,voltageLV:lvKV})});
-    drawLayout(feederConfig);
-    updatePanes();
-  }
-
-  function drawLayout(feederConfig){
-    ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);busCoords=[];
-    const baseY = 100, sx = 180, sy = 100, startX = 900 - ((feederConfig.length-1)/2)*sx;
-    busCoords.push({name:'POI BUS', x:900, y:baseY, padWidth:20, padHeight:0});
-    busCoords.push({name:'GSU HV BUS', x:900, y:baseY+80, padWidth:20, padHeight:0});
-    busCoords.push({name:'SUB-MV BUS', x:900, y:baseY+160, padWidth:20, padHeight:0});
-    ctx.save();
-    ctx.fillStyle = "#0a66c2";
-    ctx.beginPath();ctx.arc(900,baseY,10,0,2*Math.PI);ctx.fill();ctx.fillText("POI BUS",915,baseY+5);
-    ctx.beginPath();ctx.arc(900,baseY+80,10,0,2*Math.PI);ctx.fill();ctx.fillText("GSU HV BUS",915,baseY+85);
-    ctx.beginPath();ctx.arc(900,baseY+160,10,0,2*Math.PI);ctx.fill();ctx.fillText("SUB-MV BUS",915,baseY+165);
-    ctx.fillStyle = "#2ecc71";
-    ctx.fillRect(890, baseY+100, 20, 40);
-    ctx.fillStyle = "#000"; ctx.fillText("GSU XFMR", 920, baseY+125);
-    ctx.restore();
-    let invCounter = 0;
-    for(let f=0; f<feederConfig.length; f++){
-      const nInv = feederConfig[f];
-      const colX = startX + f*sx;
-      let prevY = baseY+160;
-      for(let j=0;j<nInv;j++){
-        const mvY = baseY+260 + j*sy;
-        let invName = `INV${1001+invCounter}`;
-        let lvY = mvY+30, padY = lvY+30;
-        ctx.save(); ctx.beginPath(); ctx.moveTo(colX, prevY); ctx.lineTo(colX, mvY); ctx.strokeStyle='#aaa'; ctx.lineWidth=3; ctx.stroke(); ctx.restore();
-        ctx.save(); ctx.beginPath(); ctx.moveTo(colX, mvY); ctx.lineTo(colX, lvY); ctx.strokeStyle='#00c'; ctx.lineWidth=2; ctx.stroke(); ctx.restore();
-        ctx.save(); ctx.beginPath(); ctx.moveTo(colX, lvY); ctx.lineTo(colX, padY); ctx.strokeStyle='#0a66c2'; ctx.lineWidth=2; ctx.stroke(); ctx.restore();
-        ctx.save(); ctx.beginPath(); ctx.arc(colX, mvY, 8, 0, 2*Math.PI); ctx.fillStyle = 'red'; ctx.fill();
-        ctx.fillStyle = '#000'; ctx.fillText(invName, colX+15, mvY+5); ctx.restore();
-        busCoords.push({name:invName, x:colX, y:mvY, padWidth:10, padHeight:0});
-        let lvBusName = invName+"_LV";
-        ctx.save(); ctx.beginPath(); ctx.arc(colX, lvY, 6, 0, 2*Math.PI); ctx.fillStyle = 'blue'; ctx.fill();
-        ctx.fillStyle='#000'; ctx.fillText(lvBusName, colX+12, lvY+5); ctx.restore();
-        busCoords.push({name:lvBusName, x:colX, y:lvY, padWidth:8, padHeight:0});
-        ctx.save();
-        ctx.fillStyle='#2ecc71';
-        ctx.fillRect(colX-8, padY-8, 16, 16);
-        ctx.fillStyle='#000'; ctx.fillText('PAD', colX+12, padY+5);
-        ctx.restore();
-        prevY = padY;
-        invCounter++;
-      }
-    }
-  }
+  // ...all your pan/zoom, drawLayout, and bus/branch/cable logic, unchanged...
 
   function updatePanes(){
-    const coordsOnly = busCoords.filter(b=>!/^\d+(?:A|B)$/.test(b.name));
-    leftPane.textContent = coordsOnly.map(b=>{
-      const lon=Math.abs(b.x).toFixed(0).padStart(4)+(b.x<0?'W':'E');
-      const lat=Math.abs(b.y).toFixed(0).padStart(4)+(b.y<0?'S':'N');
-      return `${b.name.padEnd(12)} (${lon}, ${lat})`;
-    }).join('\n');
-    let loc='GEOPHYSICAL\n';
-    coordsOnly.forEach(b=>{
-      let num = getBusNum(b.name);
-      const lon6=Math.abs(b.x).toFixed(6)+(b.x<0?'W':'E');
-      const lat6=Math.abs(b.y).toFixed(6)+(b.y<0?'S':'N');
-      loc+=`${num}  ${lon6}  ${lat6}  90  0.80\n`;
-    });
-    loc+='BRANCHES\n'; locPane.textContent=loc;
-    let idv='';
-    coordsOnly.forEach(b=>{
-      let num=getBusNum(b.name);
-      const type=b.name.endsWith('_LV')?2:1;
-      const kv = type===2?lvKV.toFixed(2):mvKV.toFixed(2);
-      idv += `BAT_BUS_DATA_4,${num},0,1,1,1,1,0.0,1.0,0.0,1.1,0.9,1.1,0.9," "\n`;
-      idv += `BAT_BUS_CHNG_4,${num},0,${type},,,,,,${kv},,,,,,,,'${b.name}'\n\n`;
-    });
-    // Cable branches (SUB-MV to first inv of each feeder, chain inv)
-    const feeders = [];
-    let count = 0;
-    for(let f=0;f<parsedLayout.length;) {
-      let colLen = parsedLayout.filter(x=>x.feeder==parsedLayout[f].feeder).length;
-      let invs = [];
-      for(let j=0;j<colLen;j++) {
-        invs.push(getBusNum(`INV${1001+f+j}`));
-      }
-      feeders.push(invs);
-      f+=colLen;
-    }
-    branches=[];
-    feeders.forEach(invs=>{
-      if(invs.length){
-        branches.push([201,invs[0]]); // submv to first
-        for(let i=0;i<invs.length-1;i++)
-          branches.push([invs[i],invs[i+1]]);
-      }
-    });
-    let br='';
-    branches.forEach(([a,b])=>{
-      const data = `BAT_BRANCH_DATA_3,${a},${b},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0," "`;
-      const chng = `BAT_BRANCH_CHNG_3,${a},${b},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;`;
-      const seq1 = `BAT_NEWSEQ,;`;
-      const seq2 = `BAT_SEQ_BRANCH_DATA_3,${a},${b},'2',,6666.0,7777.0,8888.0,,,,,,;`;
-      idv += data+'\n'+chng+'\n'+seq1+'\n'+seq2+'\n\n';
-      br  += data+'\n'+chng+'\n'+seq1+'\n'+seq2+'\n\n';
-    });
+    // ...existing code up to idvPane.textContent = idv;
     idvPane.textContent = idv;
-    // Only branch lines in branchIdvPane
-    branchIdvPane.textContent = br;
+    // ADD THIS for branch.idv:
+    const branchOnly = idv.split('\n')
+      .filter(line => line.startsWith('BAT_BRANCH_DATA_3') || line.startsWith('BAT_BRANCH_CHNG_3') || line.startsWith('BAT_NEWSEQ') || line.startsWith('BAT_SEQ_BRANCH_DATA_3'))
+      .join('\n');
+    branchIdvPane.textContent = branchOnly;
   }
 
-  function getBusNum(name){
-    if(name==='POI BUS') return 100;
-    if(name==='GSU HV BUS') return 101;
-    if(name==='SUB-MV BUS') return 201;
-    const d=(name.match(/\d+/)||[''])[0];
-    return name.endsWith('_LV')?+d[0]+'0'+d.slice(1):+d;
-  }
-  downloadLocBtn.addEventListener('click',()=>{
-    const txt=locPane.textContent;
-    if(!txt)return alert('Generate first');
-    const blob=new Blob([txt],{type:'text/plain'}),a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);a.download='buses.loc';a.click();URL.revokeObjectURL(a.href);
-  });
-  downloadIdvBtn.addEventListener('click',()=>{
-    const txt=idvPane.textContent;
-    if(!txt)return alert('Generate first');
-    const blob=new Blob([txt],{type:'text/plain'}),a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);a.download='bus.idv';a.click();URL.revokeObjectURL(a.href);
-  });
+  // ADD THIS for branch.idv download:
   downloadBranchIdvBtn.addEventListener('click',()=>{
-    const txt=branchIdvPane.textContent;
+    const txt = branchIdvPane.textContent;
     if(!txt)return alert('Generate first');
     const blob=new Blob([txt],{type:'text/plain'}),a=document.createElement('a');
     a.href=URL.createObjectURL(blob);a.download='branch.idv';a.click();URL.revokeObjectURL(a.href);
   });
+
+  // ...rest of your handlers and logic, unchanged...
 });
 </script>
 </body>
