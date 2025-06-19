@@ -76,7 +76,7 @@
   </div>
 </main>
 <script>
-let parsedLayout=[], busCoords=[], branches=[];
+let parsedLayout=[], poiOrigin={x:0,y:0}, busCoords=[], branches=[];
 let mvKV=34.5, lvKV=0.66;
 const container=document.getElementById('canvasContainer'),
       canvas=document.getElementById('schematicCanvas'),
@@ -114,75 +114,64 @@ function generateCollector(){
 }
 
 function drawLayout(feederConfig){
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  busCoords = [];
-
-  const centerX = 900;
-  const topY = 100;
-  const sx = 180;
-  const nF = feederConfig.length;
-  const POI_Y = topY;
-  const GSU_Y = POI_Y + 80;
-  const XFMR_Y = GSU_Y + 50;
-  const SUBMV_Y = GSU_Y + 160;
-
-  // Generator with vertical connector
-  ctx.save();
-    ctx.beginPath(); ctx.arc(centerX, POI_Y-35, 15, 0, 2*Math.PI); ctx.strokeStyle='#555'; ctx.lineWidth=2; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(centerX, POI_Y-20); ctx.lineTo(centerX, POI_Y); ctx.stroke();
-    ctx.font='bold 13px Inter'; ctx.fillStyle='#555'; ctx.fillText('GEN', centerX-20, POI_Y-45);
-  ctx.restore();
-
-  // POI BUS horizontal short
-  ctx.save();
-    ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
-    ctx.beginPath(); ctx.moveTo(centerX-50, POI_Y); ctx.lineTo(centerX+50, POI_Y); ctx.stroke();
-    ctx.font='bold 13px Inter'; ctx.fillStyle='#0a66c2'; ctx.fillText('POI BUS', centerX+54, POI_Y+5);
-  ctx.restore();
-  busCoords.push({name:'POI BUS', x:centerX, y:POI_Y, padWidth:50, padHeight:0});
-
-  // POI to GSU vertical connector
-  ctx.save(); ctx.strokeStyle='#000'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(centerX, POI_Y); ctx.lineTo(centerX, GSU_Y); ctx.stroke();
-  ctx.restore();
-  ctx.save(); ctx.font='12px Inter'; ctx.fillStyle='#333'; ctx.fillText('T-Line', centerX+8, (POI_Y+GSU_Y)/2); ctx.restore();
-
-  // GSU HV BUS horizontal short
-  ctx.save();
-    ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
-    ctx.beginPath(); ctx.moveTo(centerX-50, GSU_Y); ctx.lineTo(centerX+50, GSU_Y); ctx.stroke();
-    ctx.font='bold 13px Inter'; ctx.fillStyle='#0a66c2'; ctx.fillText('GSU HV BUS', centerX+54, GSU_Y+5);
-  ctx.restore();
-  busCoords.push({name:'GSU HV BUS', x:centerX, y:GSU_Y, padWidth:50, padHeight:0});
-
-  // GSU transformer
-  ctx.save();
-    ctx.strokeStyle='#2ecc71'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(centerX, GSU_Y); ctx.lineTo(centerX, XFMR_Y); ctx.stroke();
-    ctx.fillStyle='#2ecc71'; ctx.fillRect(centerX-13, XFMR_Y, 26, 44);
-    ctx.font='12px Inter'; ctx.fillStyle='#000'; ctx.fillText('GSU XFMR', centerX+18, XFMR_Y+25);
-  ctx.restore();
-
-  // Transformer to SUB-MV connector
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); busCoords=[];
+  const centerX=900, topY=100, sx=180, sy=100, nF=feederConfig.length;
+  const POI_Y=topY, GSU_Y=POI_Y+80, XFMR_Y=GSU_Y+50, SUBMV_Y=GSU_Y+160;
+  // Generator symbol
+  ctx.save(); ctx.beginPath(); ctx.arc(centerX,POI_Y-35,15,0,2*Math.PI); ctx.strokeStyle='#555'; ctx.lineWidth=2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(centerX,POI_Y-20); ctx.lineTo(centerX,POI_Y); ctx.stroke();
+  ctx.font='bold 13px Inter'; ctx.fillStyle='#555'; ctx.fillText('GEN',centerX-20,POI_Y-45); ctx.restore();
+  // POI BUS
+  ctx.save(); ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(centerX-50,POI_Y); ctx.lineTo(centerX+50,POI_Y); ctx.stroke();
+  ctx.font='bold 13px Inter'; ctx.fillStyle='#0a66c2'; ctx.fillText('POI BUS',centerX+54,POI_Y+5); ctx.restore();
+  busCoords.push({name:'POI BUS',x:centerX,y:POI_Y,padWidth:50,padHeight:0});
+  // T-Line
+  ctx.save(); ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(centerX,POI_Y); ctx.lineTo(centerX,GSU_Y); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.font='12px Inter'; ctx.fillStyle='#333'; ctx.fillText('T-Line',centerX+8,(POI_Y+GSU_Y)/2); ctx.restore();
+  // GSU HV BUS
+  ctx.save(); ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(centerX-50,GSU_Y); ctx.lineTo(centerX+50,GSU_Y); ctx.stroke();
+  ctx.font='bold 13px Inter'; ctx.fillStyle='#0a66c2'; ctx.fillText('GSU HV BUS',centerX+54,GSU_Y+5); ctx.restore();
+  busCoords.push({name:'GSU HV BUS',x:centerX,y:GSU_Y,padWidth:50,padHeight:0});
+  // Transformer
   ctx.save(); ctx.strokeStyle='#2ecc71'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(centerX, XFMR_Y+44); ctx.lineTo(centerX, SUBMV_Y); ctx.stroke();
-  ctx.restore();
-
-  // SUB-MV BUS as horizontal line
-  const subW = (nF-1)*sx + 100;
-  ctx.save();
-    ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
-    ctx.beginPath(); ctx.moveTo(centerX-subW/2, SUBMV_Y); ctx.lineTo(centerX+subW/2, SUBMV_Y); ctx.stroke();
-    ctx.font='bold 13px Inter'; ctx.fillStyle='#0a66c2'; ctx.fillText('SUB-MV BUS', centerX+subW/2+10, SUBMV_Y+5);
-  ctx.restore();
-  busCoords.push({name:'SUB-MV BUS', x:centerX, y:SUBMV_Y, padWidth:subW/2, padHeight:0});
-
-  // Feeders logic unchanged...
-...
+  ctx.beginPath(); ctx.moveTo(centerX,GSU_Y); ctx.lineTo(centerX,XFMR_Y); ctx.stroke();
+  ctx.fillStyle='#2ecc71'; ctx.fillRect(centerX-13,XFMR_Y,26,44);
+  ctx.font='12px Inter'; ctx.fillStyle='#000'; ctx.fillText('GSU XFMR',centerX+18,XFMR_Y+25); ctx.restore();
+  // XFMR->SUB-MV
+  ctx.save(); ctx.strokeStyle='#2ecc71'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(centerX,XFMR_Y+44); ctx.lineTo(centerX,SUBMV_Y); ctx.stroke(); ctx.restore();
+  // SUB-MV BUS
+  const subW=(nF-1)*sx+100;
+  ctx.save(); ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(centerX-subW/2,SUBMV_Y); ctx.lineTo(centerX+subW/2,SUBMV_Y); ctx.stroke();
+  ctx.font='bold 13px Inter'; ctx.fillStyle='#0a66c2'; ctx.fillText('SUB-MV BUS',centerX+subW/2+10,SUBMV_Y+5); ctx.restore();
+  busCoords.push({name:'SUB-MV BUS',x:centerX,y:SUBMV_Y,padWidth:subW/2,padHeight:0});
+  // Feeders & Inverters
+  let x0=centerX-((nF-1)/2)*sx, invIdx=0;
+  feederConfig.forEach((cnt,fI)=>{
+    const x=x0+fI*sx;
+    ctx.save(); ctx.strokeStyle='#aaa'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(x,SUBMV_Y); ctx.lineTo(x,SUBMV_Y+40); ctx.stroke(); ctx.restore();
+    let prevY=SUBMV_Y+40;
+    for(let j=0;j<cnt;j++){
+      const yMV=prevY+sy, yPAD=yMV+32, yLV=yPAD+32;
+      ctx.save(); ctx.strokeStyle='#aaa'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(x,prevY); ctx.lineTo(x,yMV); ctx.lineTo(x,yPAD); ctx.lineTo(x,yLV); ctx.stroke(); ctx.restore();
+      const invName=`INV${1001+invIdx}`;
+      ctx.save(); ctx.beginPath(); ctx.arc(x,yMV,8,0,2*Math.PI); ctx.fillStyle='red'; ctx.fill(); ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(invName,x+13,yMV+4); ctx.restore();
+      busCoords.push({name:invName,x:x,y:yMV,padWidth:10,padHeight:0});
+      ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(x-8,yPAD-8,16,16); ctx.font='12px Inter'; ctx.fillStyle='#000'; ctx.fillText('PAD',x+13,yPAD+4); ctx.restore();
+      const lvName=invName+'_LV';
+      ctx.save(); ctx.beginPath(); ctx.arc(x,yLV,6,0,2*Math.PI); ctx.fillStyle='blue'; ctx.fill(); ctx.fillStyle='#000'; ctx.fillText(lvName,x+11,yLV+4); ctx.restore();
+      busCoords.push({name:lvName,x:x,y:yLV,padWidth:8,padHeight:0});
+      prevY=yLV; invIdx++;
+    }
+  });
 }
 
-// ... rest of script unchanged...
+// ... rest of script unchanged ...
 </script>
 </body>
 </html>
