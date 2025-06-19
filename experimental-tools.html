@@ -119,8 +119,8 @@
       ctx.save();ctx.fillStyle='#000';ctx.font='12px Inter';ctx.fillText(pt.name+'_LV',xLV+30,yLV+4);ctx.restore();
     });
   }
-  function updatePanes(){document.getElementById('leftPane').textContent=busCoords.map(b=>{const lon=Math.abs(b.x).toFixed(0).padStart(4)+(b.x<0?'W':'E'),lat=Math.abs(b.y).toFixed(0).padStart(4)+(b.y<0?'S':'N');return`${b.name.padEnd(12)} (${lon}, ${lat})`;}).join('\n');}
-  function fitToContainer(){if(!busCoords.length)return;const xs=busCoords.map(b=>b.x),ys=busCoords.map(b=>b.y);const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),m=40,cw=(maxX-minX)+2*m,ch=(maxY-minY)+2*m,W=container.clientWidth,H=container.clientHeight,sX=W/cw,sY=H/ch,oX=(W-cw*sX)/2-(minX-m)*sX,oY=(H-ch*sY)/2-(minY-m)*sY;canvas.style.transform=`translate(${oX}px,${oY}px) scale(${Math.min(sX,sY)})`;}  
+  function updatePanes(){document.getElementById('leftPane').textContent=busCoords.map(b=>{const lon=Math.abs(b.x).toFixed(0).padStart(4)+(b.x<0?'W':'E'),lat=Math.abs(b.y).toFixed(0).padStart(4)+(b.y<0?'S':'N');return`${b.name.padEnd(12)} (${lon}, ${lat})`;}).join('\\n');}
+  function fitToContainer(){if(!busCoords.length)return;const xs=busCoords.map(b=>b.x),ys=busCoords.map(b=>b.y);const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),m=40,cw=(maxX-minX)+2*m,ch=(maxY-minY)+2*m,W=container.clientWidth,H=container.clientHeight,sX=W/cw,sY=H/ch,oX=(W-cw*sX)/2-(minX-m)*sX,oY=(H-ch*sY)/2-(minY-m)*sY;canvas.style.transform=`translate(${oX}px,${oY}px) scale(${Math.min(sX,sY)})`;}
   window.addEventListener('resize',fitToContainer);new ResizeObserver(fitToContainer).observe(container);
 })();
 </script>
