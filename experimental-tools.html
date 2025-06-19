@@ -198,13 +198,23 @@ function drawLayout(feederConfig){
       ctx.restore();
       // MV
       const invName = `INV${1001 + invIdx}`;
-      ctx.save(); ctx.beginPath(); ctx.arc(x, yMV, 8,0,2*Math.PI); ctx.fillStyle='red'; ctx.fill(); ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(invName, x+13, yMV+4); ctx.restore();
+            // MV bus short horizontal
+      const invName = `INV${1001 + invIdx}`;
+      ctx.save(); ctx.strokeStyle='red'; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.moveTo(x-8, yMV); ctx.lineTo(x+8, yMV); ctx.stroke();
+      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(invName, x+13, yMV+4);
+      ctx.restore();
       busCoords.push({name:invName,x:x,y:yMV,padWidth:10,padHeight:0});
       // PAD
       ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(x-8, yPAD-8,16,16); ctx.font='12px Inter'; ctx.fillStyle='#000'; ctx.fillText('PAD', x+13, yPAD+4); ctx.restore();
       // LV
       const lvName = invName + '_LV';
-      ctx.save(); ctx.beginPath(); ctx.arc(x, yLV,6,0,2*Math.PI); ctx.fillStyle='blue'; ctx.fill(); ctx.fillStyle='#000'; ctx.fillText(lvName, x+11, yLV+4); ctx.restore();
+            // LV bus short horizontal
+      const lvName = invName + '_LV';
+      ctx.save(); ctx.strokeStyle='blue'; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.moveTo(x-8, yLV); ctx.lineTo(x+8, yLV); ctx.stroke();
+      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(lvName, x+11, yLV+4);
+      ctx.restore();
       busCoords.push({name:lvName,x:x,y:yLV,padWidth:8,padHeight:0});
       prevY = yLV;
       invIdx++;
