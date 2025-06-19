@@ -50,61 +50,77 @@
 </main>
 <script>
 (() => {
-  const canvas = document.getElementById('schematicCanvas');
-  const ctx = canvas.getContext('2d');
-  const container = document.getElementById('canvasContainer');
-  const slider = document.getElementById('zoomSlider');
+  const canvas = document.getElementById('schematicCanvas'), ctx = canvas.getContext('2d'), container = document.getElementById('canvasContainer'), slider = document.getElementById('zoomSlider');
   let scale=1, panX=0, panY=0, isPanning=false, startX=0, startY=0;
-  let busCoords=[], mvPoints=[], branches=[];
+  let busCoords = [], mvPoints = [], branches = [];
   let mvKV=34.5, lvKV=0.66;
 
   function updateTransform() { canvas.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`; }
   function resetView() { scale=1; panX=0; panY=0; updateTransform(); slider.value=scale; }
-  function zoomTo(ns,cx=canvas.clientWidth/2,cy=canvas.clientHeight/2) {
-    panX-=(cx/scale-cx/ns);
-    panY-=(cy/scale-cy/ns);
-    scale=ns; updateTransform(); slider.value=ns;
+  function zoomTo(ns, cx=canvas.clientWidth/2, cy=canvas.clientHeight/2) {
+    panX -= (cx/scale - cx/ns);
+    panY -= (cy/scale - cy/ns);
+    scale = ns; updateTransform(); slider.value=ns;
   }
-  slider.addEventListener('input',e=>zoomTo(+e.target.value));
-  document.getElementById('resetBtn').addEventListener('click',resetView);
-  document.getElementById('zoomInBtn').addEventListener('click',()=>zoomTo(Math.min(scale*1.1,3)));
-  document.getElementById('zoomOutBtn').addEventListener('click',()=>zoomTo(Math.max(scale*0.9,0.1)));
-  container.addEventListener('wheel',e=>{ e.preventDefault(); const d=-e.deltaY*0.001; const ns=Math.min(Math.max(scale+d,0.1),3); const r=canvas.getBoundingClientRect(); zoomTo(ns,e.clientX-r.left,e.clientY-r.top); });
-  container.addEventListener('mousedown',e=>{ isPanning=true; container.classList.add('grabbing'); startX=e.clientX-panX; startY=e.clientY-panY; });
-  document.addEventListener('mousemove',e=>{ if(!isPanning) return; panX=e.clientX-startX; panY=e.clientY-startY; updateTransform(); });
-  document.addEventListener('mouseup',()=>{ isPanning=false; container.classList.remove('grabbing'); });
+  slider.addEventListener('input', e=>zoomTo(+e.target.value));
+  document.getElementById('resetBtn').addEventListener('click', resetView);
+  document.getElementById('zoomInBtn').addEventListener('click', ()=>zoomTo(Math.min(scale*1.1,3)));
+  document.getElementById('zoomOutBtn').addEventListener('click', ()=>zoomTo(Math.max(scale*0.9,0.1)));
+  container.addEventListener('wheel', e=>{ e.preventDefault(); const d=-e.deltaY*0.001; const ns=Math.min(Math.max(scale+d,0.1),3); const r=canvas.getBoundingClientRect(); zoomTo(ns,e.clientX-r.left,e.clientY-r.top); });
+  container.addEventListener('mousedown', e=>{ isPanning=true; container.classList.add('grabbing'); startX=e.clientX-panX; startY=e.clientY-panY; });
+  document.addEventListener('mousemove', e=>{ if(!isPanning) return; panX=e.clientX-startX; panY=e.clientY-startY; updateTransform(); });
+  document.addEventListener('mouseup', ()=>{ isPanning=false; container.classList.remove('grabbing'); });
 
-  document.getElementById('genBtn').addEventListener('click',()=>{
-    const total=+document.getElementById('total').value; if(!total){alert('Enter total inverters');return;}
-    const perF=+document.getElementById('perFeeder').value; const custom=document.getElementById('customFeeder').value.trim();
-    mvKV=+document.getElementById('mvVoltage').value; lvKV=+document.getElementById('lvVoltage').value;
+  document.getElementById('genBtn').addEventListener('click', () => {
+    const total = +document.getElementById('total').value;
+    if(!total){ alert('Enter total inverters'); return; }
+    const perF = +document.getElementById('perFeeder').value;
+    const custom = document.getElementById('customFeeder').value.trim();
+    mvKV = +document.getElementById('mvVoltage').value;
+    lvKV = +document.getElementById('lvVoltage').value;
 
-    let feederConfig=[], rem=total;
-    if(custom){ feederConfig=custom.split(',').map(n=>+n).filter(n=>n>0); let sum=feederConfig.reduce((a,b)=>a+b,0); while(sum<total){feederConfig.push(1);sum++;} if(sum>total){let run=0; feederConfig=feederConfig.filter(n=>{if(run+n<=total){run+=n;return true;}if(run<total){feederConfig.push(total-run);run=total;return true;}return false;});}} else {while(rem>0){const cnt=Math.min(perF>0?perF:total,rem);feederConfig.push(cnt);rem-=cnt;}};
+    let feederConfig = [], rem = total;
+    if(custom){
+      feederConfig = custom.split(',').map(n=>+n).filter(n=>n>0);
+      let sum = feederConfig.reduce((a,b)=>a+b,0);
+      while(sum<total){ feederConfig.push(1); sum++; }
+      if(sum>total){ let run=0; feederConfig = feederConfig.filter(n=>{ if(run+n<=total){ run+=n; return true; } if(run<total){ feederConfig.push(total-run); run=total; return true;} return false; }); }
+    } else {
+      while(rem>0){ const cnt = Math.min(perF>0?perF:total, rem); feederConfig.push(cnt); rem-=cnt; }
+    }
 
-    mvPoints=[]; const cx=canvas.width/2, SUB_Y=340, sx=180, sy=100;
-    feederConfig.forEach((cnt,i)=>{ const baseX=cx-((feederConfig.length-1)/2)*sx+i*sx; for(let j=0;j<cnt;j++){ mvPoints.push({x:baseX,y:SUB_Y+40+j*sy,name:`INV${1001+mvPoints.length}`,feeder:i+1}); }});
+    mvPoints = [];
+    const cx = canvas.width/2, SUB_Y = 340, sx=180, sy=100;
+    feederConfig.forEach((cnt,i) => {
+      const baseX = cx - ((feederConfig.length-1)/2)*sx + i*sx;
+      for(let j=0; j<cnt; j++){
+        mvPoints.push({ x: baseX, y: SUB_Y + 40 + j*sy, name: `INV${1001+mvPoints.length}`, feeder: i+1 });
+      }
+    });
 
-    drawLayout(feederConfig); fitToContainer(); updatePanes();
+    drawLayout(feederConfig);
+    fitToContainer();
+    updatePanes();
   });
 
   function drawLayout(feederConfig){
-    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); busCoords=[]; branches=[];
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height);
+    busCoords = [];
     const cx=canvas.width/2, POI_Y=100, GSU_Y=180, XFMR_Y=230, SUB_Y=340;
-    const sx=180, sy=100;
+    const sx=180;
 
     // Generator
     ctx.save(); ctx.strokeStyle='#555'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(cx,POI_Y-35,15,0,2*Math.PI); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx,POI_Y-20); ctx.lineTo(cx,POI_Y); ctx.stroke();
-    ctx.fillStyle='#000'; ctx.font='bold 13px Inter'; ctx.fillText('GENERATOR',cx-40,POI_Y-50);
+    ctx.beginPath(); ctx.arc(cx, POI_Y-35, 15,0,2*Math.PI); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, POI_Y-20); ctx.lineTo(cx, POI_Y); ctx.stroke();
+    ctx.font='bold 13px Inter'; ctx.fillStyle='#555'; ctx.fillText('GENERATOR', cx-30, POI_Y-50);
     ctx.restore();
-    busCoords.push({name:'GENERATOR',x:cx,y:POI_Y-50});
+    busCoords.push({name:'GENERATOR', x:cx, y:POI_Y-50});
 
     // POI BUS
     ctx.save(); ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
     ctx.beginPath(); ctx.moveTo(cx-50,POI_Y); ctx.lineTo(cx+50,POI_Y); ctx.stroke(); ctx.restore();
-    busCoords.push({name:'POI BUS',x:cx,y:POI_Y});
+    busCoords.push({name:'POI BUS', x:cx, y:POI_Y});
 
     // T-Line
     ctx.save(); ctx.strokeStyle='#000'; ctx.lineWidth=2;
@@ -113,72 +129,70 @@
     // GSU HV BUS
     ctx.save(); ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
     ctx.beginPath(); ctx.moveTo(cx-50,GSU_Y); ctx.lineTo(cx+50,GSU_Y); ctx.stroke(); ctx.restore();
-    busCoords.push({name:'GSU HV BUS',x:cx,y:GSU_Y});
+    busCoords.push({name:'GSU HV BUS', x:cx, y:GSU_Y});
 
-    // Transformer + cable
+    // Transformer
     ctx.save(); ctx.strokeStyle='#2ecc71'; ctx.lineWidth=3;
     ctx.beginPath(); ctx.moveTo(cx,GSU_Y); ctx.lineTo(cx,XFMR_Y); ctx.stroke();
-    ctx.fillRect(cx-13,XFMR_Y,26,44);
-    ctx.beginPath(); ctx.moveTo(cx,XFMR_Y+44); ctx.lineTo(cx,SUB_Y); ctx.stroke();
-    ctx.restore();
+    ctx.fillStyle='#2ecc71'; ctx.fillRect(cx-13,XFMR_Y,26,44);
+    ctx.beginPath(); ctx.moveTo(cx,XFMR_Y+44); ctx.lineTo(cx,SUB_Y); ctx.stroke(); ctx.restore();
 
     // SUB-MV BUS
-    const totalFeeders= feederConfig.length;
-    const width=(totalFeeders-1)*sx + 100;
+    const width = (feederConfig.length-1)*sx + 100;
     ctx.save(); ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
     ctx.beginPath(); ctx.moveTo(cx-width/2,SUB_Y); ctx.lineTo(cx+width/2,SUB_Y); ctx.stroke(); ctx.restore();
-    busCoords.push({name:'SUB-MV BUS',x:cx,y:SUB_Y});
+    busCoords.push({name:'SUB-MV BUS', x:cx, y:SUB_Y});
 
-    // Feeder cables + nodes
-    const groups = {};
-    mvPoints.forEach(pt => { groups[pt.feeder] = groups[pt.feeder]||[]; groups[pt.feeder].push(pt); });
+    // Vertical feeders
     ctx.save(); ctx.strokeStyle='#888'; ctx.lineWidth=2;
+    const groups = {};
+    mvPoints.forEach(pt => { (groups[pt.feeder] = groups[pt.feeder]||[]).push(pt); });
     Object.values(groups).forEach(arr => {
       arr.sort((a,b)=>a.y-b.y);
-      // vertical from SUB bus to first
-      ctx.beginPath(); ctx.moveTo(arr[0].x,SUB_Y); ctx.lineTo(arr[0].x,arr[0].y); ctx.stroke();
-      // horizontal & vertical between
-      for(let i=0;i<arr.length-1;i++){
-        const p=arr[i], q=arr[i+1];
-        ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
-      }
+      ctx.beginPath(); ctx.moveTo(arr[0].x, SUB_Y); ctx.lineTo(arr[0].x, arr[arr.length-1].y+64); ctx.stroke();
     });
     ctx.restore();
 
-    // Nodes: MV, PAD, LV
-    mvPoints.forEach(pt=>{
+    // Nodes
+    mvPoints.forEach((pt, idx) => {
       // MV bus segment
       ctx.save(); ctx.strokeStyle='red'; ctx.lineWidth=4;
-      ctx.beginPath(); ctx.moveTo(pt.x-15,pt.y); ctx.lineTo(pt.x+15,pt.y); ctx.stroke(); ctx.restore();
-      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(pt.name,pt.x+18,pt.y+4);
-      busCoords.push({name:pt.name,x:pt.x,y:pt.y});
+      ctx.beginPath(); ctx.moveTo(pt.x-20, pt.y); ctx.lineTo(pt.x+20,pt.y); ctx.stroke(); ctx.restore();
+      busCoords.push({name:pt.name, x:pt.x, y:pt.y});
+      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(pt.name, pt.x+24, pt.y+4);
 
-      // PAD
-      const xPAD=pt.x, yPAD=pt.y+32;
-      ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(xPAD-8,yPAD-8,16,16); ctx.restore();
-      busCoords.push({name:pt.name+'_PAD',x:xPAD,y:yPAD});
-      // connectors
+      // Padmount
+      const padY = pt.y + 32;
+      ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(pt.x+8, padY-8, 16,16); ctx.restore();
+      busCoords.push({name:pt.name+'_PAD', x:pt.x+16, y:padY});
+
+      // connector to pad and LV
       ctx.save(); ctx.strokeStyle='#888'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(pt.x,pt.y); ctx.lineTo(pt.x,yPAD-8); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(xPAD,yPAD+8); ctx.lineTo(xPAD,pt.y+64); ctx.stroke();
-      ctx.restore();
+      ctx.beginPath(); ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x, padY-8); ctx.stroke();
+      const lvY = pt.y + 64;
+      ctx.beginPath(); ctx.moveTo(pt.x+16,padY+8); ctx.lineTo(pt.x+16,lvY); ctx.stroke(); ctx.restore();
 
       // LV bus
-      const xLV=pt.x, yLV=pt.y+64;
       ctx.save(); ctx.strokeStyle='blue'; ctx.lineWidth=4;
-      ctx.beginPath(); ctx.moveTo(xLV-15,yLV); ctx.lineTo(xLV+15,yLV); ctx.stroke(); ctx.restore();
-      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(pt.name+'_LV',xLV+18,yLV+4);
-      busCoords.push({name:pt.name+'_LV',x:xLV,y:yLV});
-
-      // inverter label
-      ctx.save(); ctx.fillStyle='#000'; ctx.font='12px Inter';
-      ctx.fillText('I'+(mvPoints.indexOf(pt)+1),pt.x+46,yLV+20);
-      ctx.restore();
+      ctx.beginPath(); ctx.moveTo(pt.x+16-20, lvY); ctx.lineTo(pt.x+16+20,lvY); ctx.stroke(); ctx.restore();
+      busCoords.push({name:pt.name+'_LV', x:pt.x+16, y:lvY});
+      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(pt.name+'_LV', pt.x+40, lvY+4);
     });
   }
 
-  function fitToContainer() {/* same as before */}
-  function updatePanes() {/* same as before */}
+  function fitToContainer() {
+    if(!busCoords.length) return;
+    const xs = busCoords.map(b=>b.x), ys = busCoords.map(b=>b.y);
+    const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+    const m=40, w=(maxX-minX)+m*2, h=(maxY-minY)+m*2;
+    const W=container.clientWidth, H=container.clientHeight;
+    const s=Math.min(W/w, H/h);
+    const oX=(W-w*s)/2-(minX-m)*s, oY=(H-h*s)/2-(minY-m)*s;
+    canvas.style.transform = `translate(${oX}px,${oY}px) scale(${s})`;
+    scale=s; panX=oX; panY=oY; slider.value=s;
+  }
+
+  function updatePanes() {/* omitted for brevity */}
 })();
 </script>
 </body>
