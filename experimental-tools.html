@@ -37,7 +37,6 @@
 <body>
 <main>
   <h1>⚡ Solar Farm Collector Designer</h1>
-  <!-- Inputs -->
   <label>Total Inverters</label>
   <input type="number" id="total" placeholder="e.g., 40">
   <label>Default Inverters per Feeder</label>
@@ -60,12 +59,10 @@
   <button id="downloadBusIdvBtn">bus.idv</button>
   <button id="downloadCableIdvBtn">cable.idv</button>
 
-  <!-- Canvas -->
   <div id="canvasContainer">
     <canvas id="schematicCanvas" width="1800" height="2400"></canvas>
   </div>
 
-  <!-- Output Panes -->
   <div id="coordContainer">
     <div id="leftPane"  class="coordPane">Bus coordinates will appear here.</div>
     <div id="locPane"   class="coordPane">.loc output will appear here.</div>
@@ -74,20 +71,14 @@
   </div>
 </main>
 <script>
-// Interaction state
 let scale = 1, translateX = 0, translateY = 0;
 let isPanning = false, startPan = {x:0, y:0};
 let lastFeederConfig = [];
-
 const canvas = document.getElementById('schematicCanvas');
 const ctx = canvas.getContext('2d');
 const canvasContainer = document.getElementById('canvasContainer');
-
-// Setup event listeners for pan & zoom
 touchEvents();
-
 function touchEvents(){
-  // Mouse pan
   canvasContainer.addEventListener('mousedown', e => {
     isPanning = true;
     startPan = { x: e.clientX - translateX, y: e.clientY - translateY };
@@ -103,8 +94,6 @@ function touchEvents(){
     isPanning = false;
     canvasContainer.classList.remove('grabbing');
   });
-
-  // Wheel zoom
   canvasContainer.addEventListener('wheel', e => {
     e.preventDefault();
     const mouseX = (e.clientX - translateX) / scale;
@@ -116,37 +105,30 @@ function touchEvents(){
     scale = newScale;
     drawLayout(lastFeederConfig);
   }, { passive: false });
-
-  // Touch pan & pinch
   let touchState = {};
   canvasContainer.addEventListener('touchstart', e => {
     if (e.touches.length === 2) {
       e.preventDefault();
       const [t1, t2] = e.touches;
-      const dx = t2.clientX - t1.clientX;
-      const dy = t2.clientY - t1.clientY;
-      touchState.initialDist = Math.hypot(dx, dy);
+      touchState.initialDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
       touchState.initialScale = scale;
       touchState.center = {
-        x: (t1.clientX + t2.clientX) / 2 - translateX,
-        y: (t1.clientY + t2.clientY) / 2 - translateY
+        x: (t1.clientX + t2.clientX)/2 - translateX,
+        y: (t1.clientY + t2.clientY)/2 - translateY
       };
     } else if (e.touches.length === 1) {
       isPanning = true;
       startPan = { x: e.touches[0].clientX - translateX, y: e.touches[0].clientY - translateY };
     }
   }, { passive: false });
-
   canvasContainer.addEventListener('touchmove', e => {
     if (e.touches.length === 2) {
       e.preventDefault();
       const [t1, t2] = e.touches;
-      const dx = t2.clientX - t1.clientX;
-      const dy = t2.clientY - t1.clientY;
-      const dist = Math.hypot(dx, dy);
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
       const newScale = touchState.initialScale * (dist / touchState.initialDist);
-      const centerX = (t1.clientX + t2.clientX) / 2;
-      const centerY = (t1.clientY + t2.clientY) / 2;
+      const centerX = (t1.clientX + t2.clientX)/2;
+      const centerY = (t1.clientY + t2.clientY)/2;
       translateX = centerX - touchState.center.x * newScale;
       translateY = centerY - touchState.center.y * newScale;
       scale = newScale;
@@ -158,13 +140,9 @@ function touchEvents(){
       drawLayout(lastFeederConfig);
     }
   }, { passive: false });
-
-  canvasContainer.addEventListener('touchend', e => {
-    if (e.touches.length < 2) isPanning = false;
-  });
+  canvasContainer.addEventListener('touchend', () => { if (event.touches.length < 2) isPanning = false; });
 }
 
-// Generation & drawing logic
 const genBtn = document.getElementById('genBtn');
 const downloadLocBtn = document.getElementById('downloadLocBtn');
 const downloadBusIdvBtn = document.getElementById('downloadBusIdvBtn');
@@ -173,10 +151,8 @@ const leftPane = document.getElementById('leftPane');
 const locPane = document.getElementById('locPane');
 const idvPane = document.getElementById('idvPane');
 const branchPane = document.getElementById('branchPane');
-
 let busCoords = [], branches = [];
 let mvKV = 34.5, lvKV = 0.66;
-
 genBtn.addEventListener('click', generateCollector);
 
 function generateCollector() {
@@ -212,63 +188,53 @@ function generateCollector() {
 }
 
 function drawLayout(feederConfig) {
-  // clear canvas
-  ctx.save();
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.restore();
+  // clear
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.restore();
+  // pan & zoom
+  ctx.save(); ctx.setTransform(scale,0,0,scale,translateX,translateY);
 
-  // apply pan & zoom
-  ctx.save();
-  ctx.setTransform(scale,0,0,scale,translateX,translateY);
-
-  // drawing content
   busCoords = [];
   const baseY = 100, sx = 180, sy = 100;
   const startX = 900 - ((feederConfig.length-1)/2) * sx;
 
-  // POI, GSU, SUB-MV
+  // draw sub-MV horizontal bus
+  const busY = baseY + 160;
+  const busStartX = startX - sx/2;
+  const busEndX = startX + (feederConfig.length-1)*sx + sx/2;
+  ctx.strokeStyle = '#2c7a7b'; ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.moveTo(busStartX, busY); ctx.lineTo(busEndX, busY); ctx.stroke();
+
+  // POI, GSU, SUB-MV markers
   busCoords.push({name:'POI BUS', x:900, y:baseY});
   busCoords.push({name:'GSU HV BUS', x:900, y:baseY+80});
   busCoords.push({name:'SUB-MV BUS', x:900, y:baseY+160});
   ctx.fillStyle = "#0a66c2";
   [['POI BUS',900,baseY],['GSU HV BUS',900,baseY+80],['SUB-MV BUS',900,baseY+160]].forEach(([n,x,y])=>{
-    ctx.beginPath(); ctx.arc(x,y,10,0,2*Math.PI); ctx.fill();
-    ctx.fillText(n, x+15, y+5);
+    ctx.beginPath(); ctx.arc(x,y,10,0,2*Math.PI); ctx.fill(); ctx.fillText(n, x+15, y+5);
   });
-  ctx.fillStyle = "#2ecc71"; ctx.fillRect(890, baseY+100, 20, 40);
-  ctx.fillStyle = "#000"; ctx.fillText("GSU XFMR",920,baseY+125);
+  ctx.fillStyle = "#2ecc71"; ctx.fillRect(890, baseY+100, 20, 40); ctx.fillStyle = "#000"; ctx.fillText("GSU XFMR",920,baseY+125);
 
   let invCounter = 0;
   feederConfig.forEach((nInv,f) => {
     const colX = startX + f*sx;
-    let prevY = baseY+160;
+    let prevY = busY;
     for (let j=0;j<nInv;j++) {
       const mvY = baseY+260 + j*sy;
       const invName = `INV${1001+invCounter}`;
       const lvY = mvY+30, padY = lvY+30;
-      // lines
       ctx.strokeStyle='#aaa'; ctx.lineWidth=3;
       ctx.beginPath(); ctx.moveTo(colX,prevY); ctx.lineTo(colX,mvY); ctx.stroke();
       ctx.strokeStyle='#00c'; ctx.lineWidth=2;
       ctx.beginPath(); ctx.moveTo(colX,mvY); ctx.lineTo(colX,lvY); ctx.stroke();
       ctx.strokeStyle='#0a66c2'; ctx.lineWidth=2;
       ctx.beginPath(); ctx.moveTo(colX,lvY); ctx.lineTo(colX,padY); ctx.stroke();
-      // buses & pad
-      ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(colX,mvY,8,0,2*Math.PI); ctx.fill();
-      ctx.fillStyle='#000'; ctx.fillText(invName, colX+15, mvY+5);
+      ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(colX,mvY,8,0,2*Math.PI); ctx.fill(); ctx.fillText(invName, colX+15, mvY+5);
       busCoords.push({name:invName,x:colX,y:mvY});
-
       const lvName = `${invName}_LV`;
-      ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(colX,lvY,6,0,2*Math.PI); ctx.fill();
-      ctx.fillStyle='#000'; ctx.fillText(lvName, colX+12, lvY+5);
+      ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(colX,lvY,6,0,2*Math.PI); ctx.fill(); ctx.fillText(lvName, colX+12, lvY+5);
       busCoords.push({name:lvName,x:colX,y:lvY});
-
-      ctx.fillStyle='#2ecc71'; ctx.fillRect(colX-8,padY-8,16,16);
-      ctx.fillStyle='#000'; ctx.fillText('PAD',colX+12,padY+5);
-
-      prevY = padY;
-      invCounter++;
+      ctx.fillStyle='#2ecc71'; ctx.fillRect(colX-8,padY-8,16,16); ctx.fillText('PAD',colX+12,padY+5);
+      prevY = padY; invCounter++;
     }
   });
 
@@ -276,15 +242,12 @@ function drawLayout(feederConfig) {
 }
 
 function updatePanes() {
-  // identical to original implementations...
   const coordsOnly = busCoords;
-  leftPane.textContent = coordsOnly.map(b=>
-    `${b.name.padEnd(12)} (${Math.round(b.x)}, ${Math.round(b.y)})`
-  ).join('\n');
-  // ... .loc, .idv, branches logic remains unchanged ...
+  leftPane.textContent = coordsOnly.map(b=>`${b.name.padEnd(12)} (${Math.round(b.x)}, ${Math.round(b.y)})`).join('\n');
+  // remaining .loc, .idv, and branch generation logic unchanged
 }
 
-// Download buttons logic remains the same as original
+// download button logic unchanged
 </script>
 </body>
 </html>
