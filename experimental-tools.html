@@ -105,32 +105,116 @@
     let idx=0; feederConfig.forEach((cnt,fi)=>{const x=cx-((nF-1)/2)*sx+fi*sx;for(let j=0;j<cnt;j++){const y=SUBMV_Y+40+j*sy;mvPoints.push({x,y,name:`INV${1001+idx}`,feeder:fi+1});idx++;}});
     // Cables (split per feeder)
     ctx.save(); ctx.strokeStyle='#aaa'; ctx.lineWidth=3;
-    // group points by feeder
-    const feederGroups = {};
+    // group points per feeder
+    const groups = {};
     mvPoints.forEach(pt => {
-      if (!feederGroups[pt.feeder]) feederGroups[pt.feeder] = [];
-      feederGroups[pt.feeder].push(pt);
+      // MV bus node
+      ctx.save();
+      ctx.strokeStyle = 'red'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(pt.x - 15, pt.y); ctx.lineTo(pt.x + 15, pt.y); ctx.stroke();
+      ctx.fillStyle = '#000'; ctx.font = '12px Inter';
+      ctx.fillText(pt.name, pt.x + 18, pt.y + 4);
+      ctx.restore();
+      busCoords.push({ name: pt.name, x: pt.x, y: pt.y });
+
+      // Compute LV bus position
+      const xLV = pt.x + 40;
+      const yLV = pt.y + 64; // 32 px down for pad + 32 px down for LV from pad center
+      // Place padmount centered slightly right of LV bus
+      const xPAD = xLV + 5;
+      const yPAD = pt.y + 32; // halfway between MV and LV
+
+      // Draw connectors
+      ctx.save(); ctx.strokeStyle = '#888'; ctx.lineWidth = 2;
+      // vertical from MV down to pad top
+      ctx.beginPath(); ctx.moveTo(xPAD, pt.y); ctx.lineTo(xPAD, yPAD - 8); ctx.stroke();
+      // horizontal from MV node x to pad column
+      ctx.beginPath(); ctx.moveTo(pt.x, pt.y); ctx.lineTo(xPAD, pt.y); ctx.stroke();
+      // vertical from pad bottom to LV
+      ctx.beginPath(); ctx.moveTo(xPAD, yPAD + 8); ctx.lineTo(xPAD, yLV); ctx.stroke();
+      // horizontal to LV node
+      ctx.beginPath(); ctx.moveTo(xPAD, yLV); ctx.lineTo(xLV, yLV); ctx.stroke();
+      ctx.restore();
+
+      // Draw padmount
+      ctx.save(); ctx.fillStyle = '#2ecc71';
+      ctx.fillRect(xPAD - 8, yPAD - 8, 16, 16);
+      ctx.restore();
+      busCoords.push({ name: pt.name + '_PAD', x: xPAD, y: yPAD });
+
+      // Draw LV bus segment
+      const lvName = pt.name + '_LV';
+      ctx.save(); ctx.strokeStyle = 'blue'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(xLV - 15, yLV); ctx.lineTo(xLV + 15, yLV); ctx.stroke();
+      ctx.fillStyle = '#000'; ctx.font = '12px Inter';
+      ctx.fillText(lvName, xLV + 18, yLV + 4);
+      ctx.restore();
+      busCoords.push({ name: lvName, x: xLV, y: yLV });
     });
-    Object.values(feederGroups).forEach(group => {
-      // sort by y
-      group.sort((a, b) => a.y - b.y);
-      // cable from subMV bus to first inverter
+    Object.values(groups).forEach(group => {
+      group.sort((a,b) => a.y - b.y);
+      // cable from subMV to first inverter (vertical)
+      const x0 = group[0].x;
       ctx.beginPath();
-      ctx.moveTo(cx - subW/2 + (group[0].feeder - 1) * sx + sx/2, SUBMV_Y); // X on SUB-MV corresponding feeder
-      ctx.lineTo(group[0].x, group[0].y);
+      ctx.moveTo(x0, SUBMV_Y);
+      ctx.lineTo(x0, group[0].y);
       ctx.stroke();
       // chain between inverters
-      for (let i = 0; i < group.length - 1; i++) {
+      group.forEach((pt,i) => {
+        if(i===0) return;
         ctx.beginPath();
-        ctx.moveTo(group[i].x, group[i].y);
-        ctx.lineTo(group[i+1].x, group[i+1].y);
+        ctx.moveTo(pt.x, pt.y);
+        ctx.lineTo(pt.x, group[i-1].y);
         ctx.stroke();
-      }
+      });
     });
     ctx.restore();
 
     // MV, PAD, LV
-    mvPoints.forEach(pt=>{ctx.save();ctx.strokeStyle='red';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(pt.x-15,pt.y);ctx.lineTo(pt.x+15,pt.y);ctx.stroke();ctx.fillStyle='#000';ctx.font='12px Inter';ctx.fillText(pt.name,pt.x+18,pt.y+4);ctx.restore();busCoords.push({name:pt.name,x:pt.x,y:pt.y});
+    mvPoints.forEach(pt => {
+      // MV bus node
+      ctx.save();
+      ctx.strokeStyle = 'red'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(pt.x - 15, pt.y); ctx.lineTo(pt.x + 15, pt.y); ctx.stroke();
+      ctx.fillStyle = '#000'; ctx.font = '12px Inter';
+      ctx.fillText(pt.name, pt.x + 18, pt.y + 4);
+      ctx.restore();
+      busCoords.push({ name: pt.name, x: pt.x, y: pt.y });
+
+      // Compute LV bus position
+      const xLV = pt.x + 40;
+      const yLV = pt.y + 32 + 32; // original offset
+      // Center padmount between MV and LV vertically
+      const xPAD = xLV;
+      const yPAD = pt.y + (yLV - pt.y) / 2;
+
+      // Draw padmount
+      ctx.save(); ctx.fillStyle = '#2ecc71';
+      ctx.fillRect(xPAD - 8, yPAD - 8, 16, 16);
+      ctx.restore();
+      busCoords.push({ name: pt.name + '_PAD', x: xPAD, y: yPAD });
+
+      // Draw connectors
+      ctx.save(); ctx.strokeStyle = '#888'; ctx.lineWidth = 2;
+      // horz from MV node to pad column
+      ctx.beginPath(); ctx.moveTo(pt.x, pt.y); ctx.lineTo(xPAD, pt.y); ctx.stroke();
+      // vert down to pad top
+      ctx.beginPath(); ctx.moveTo(xPAD, pt.y); ctx.lineTo(xPAD, yPAD - 8); ctx.stroke();
+      // vert from pad bottom to LV bus
+      ctx.beginPath(); ctx.moveTo(xPAD, yPAD + 8); ctx.lineTo(xPAD, yLV); ctx.stroke();
+      // horz to LV node
+      ctx.beginPath(); ctx.moveTo(xPAD, yLV); ctx.lineTo(xLV, yLV); ctx.stroke();
+      ctx.restore();
+
+      // Draw LV bus segment
+      const lvName = pt.name + '_LV';
+      ctx.save(); ctx.strokeStyle = 'blue'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(xLV - 15, yLV); ctx.lineTo(xLV + 15, yLV); ctx.stroke();
+      ctx.fillStyle = '#000'; ctx.font = '12px Inter';
+      ctx.fillText(lvName, xLV + 18, yLV + 4);
+      ctx.restore();
+      busCoords.push({ name: lvName, x: xLV, y: yLV });
+    });
       const xPAD=pt.x+20,yPAD=pt.y+32;ctx.save();ctx.fillStyle='#2ecc71';ctx.fillRect(xPAD-8,yPAD-8,16,16);ctx.restore();busCoords.push({name:pt.name+'_PAD',x:xPAD,y:yPAD});
       const xLV=pt.x+40,yLV=yPAD+32,lv=`${pt.name}_LV`;ctx.save();ctx.strokeStyle='blue';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(xLV-15,yLV);ctx.lineTo(xLV+15,yLV);ctx.stroke();ctx.fillStyle='#000';ctx.font='12px Inter';ctx.fillText(lv,xLV+18,yLV+4);ctx.restore();busCoords.push({name:lv,x:xLV,y:yLV}); });
   }
