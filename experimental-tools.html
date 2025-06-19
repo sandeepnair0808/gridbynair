@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <title>Solar Farm Collector Designer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" 
+    rel="stylesheet"
+  />
   <style>
     body { font-family:'Inter',sans-serif; background:#f0f8ff; margin:0 }
     main { padding:20px; max-width:1800px; margin:auto }
@@ -20,243 +23,392 @@
     }
     button:hover { background:#004a99 }
     #canvasContainer {
-      width:100%; height:60vh; min-height:400px;
+      width:100%; height:70vh; min-height:500px;
       border:1px solid #ccc; overflow:hidden;
       position:relative; cursor:grab;
     }
     #canvasContainer.grabbing { cursor:grabbing }
     canvas { transform-origin:0 0; display:block }
-    #coordContainer { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px }
+    #coordContainer { display:flex; gap:10px; margin-top:10px }
     .coordPane {
-      background:#fff; border:1px solid #ccc;
+      flex:1; background:#fff; border:1px solid #ccc;
       padding:10px; font-family:monospace; white-space:pre;
-      max-height:200px; overflow:auto;
+      max-height:300px; overflow:auto;
     }
   </style>
 </head>
 <body>
 <main>
   <h1>⚡ Solar Farm Collector Designer</h1>
+
   <label>Total Inverters</label>
   <input type="number" id="total" placeholder="e.g., 40">
+
   <label>Default Inverters per Feeder</label>
   <input type="number" id="perFeeder" placeholder="e.g., 8">
+
   <label>Custom Feeder Configuration</label>
   <textarea id="customFeeder" placeholder="e.g., 4,4,4,4"></textarea>
+
   <label>Capacitor Bank (kVAR)</label>
   <input type="number" id="capacitor" placeholder="e.g., 500">
+
   <label>MV Voltage (kV)</label>
   <input type="number" id="mvVoltage" value="34.5" step="0.1">
+
   <label>LV Voltage (kV)</label>
   <input type="number" id="lvVoltage" value="0.66" step="0.01">
+
   <label>Impedance (Z pu)</label>
   <input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01"/>
+
   <div><input type="checkbox" id="lvLoad"><label for="lvLoad">Add Load on LV side</label></div>
   <div><input type="checkbox" id="showLegend" checked><label for="showLegend">Show Legend</label></div>
   <div><input type="checkbox" id="showCoords"><label for="showCoords">Show Bus Coordinates</label></div>
+
   <button id="genBtn">Generate</button>
+  <button id="resetBtn">Reset View</button>
+  <button id="zoomInBtn">Zoom In</button>
+  <button id="zoomOutBtn">Zoom Out</button>
+  <label for="zoomSlider">Zoom:</label>
+  <input type="range" id="zoomSlider" min="0.1" max="10" step="0.1" value="1">
+
+  <button id="exportSvgBtn">Export SVG</button>
+  <button id="exportPdfBtn">Export PDF</button>
   <button id="downloadLocBtn">Download .loc</button>
-  <button id="downloadBusIdvBtn">bus.idv</button>
-  <button id="downloadCableIdvBtn">cable.idv</button>
+  <button id="downloadIdvBtn">bus.idv</button>
 
   <div id="canvasContainer">
     <canvas id="schematicCanvas" width="1800" height="2400"></canvas>
   </div>
 
   <div id="coordContainer">
-    <div id="leftPane"  class="coordPane">Bus coordinates will appear here.</div>
-    <div id="locPane"   class="coordPane">.loc output will appear here.</div>
-    <div id="idvPane"   class="coordPane">bus.idv output will appear here.</div>
-    <div id="branchPane" class="coordPane">cable.idv output will appear here.</div>
+    <div id="leftPane" class="coordPane">Bus coords appear here.</div>
+    <div id="locPane"  class="coordPane">.loc output appears here.</div>
+    <div id="idvPane"  class="coordPane">.idv output appears here.</div>
   </div>
 </main>
+
 <script>
-let scale = 1, translateX = 0, translateY = 0;
-let isPanning = false, startPan = {x:0, y:0};
-let lastFeederConfig = [];
-const canvas = document.getElementById('schematicCanvas');
-const ctx = canvas.getContext('2d');
-const canvasContainer = document.getElementById('canvasContainer');
+document.addEventListener('DOMContentLoaded', () => {
+  let parsedLayout = [], poiOrigin={x:0,y:0}, busCoords=[];
+  let mvKV = 34.5, lvKV = 0.66;
 
-// Pan & Zoom Handlers
-function touchEvents() {
-  canvasContainer.addEventListener('mousedown', e => {
-    isPanning = true; startPan = { x: e.clientX - translateX, y: e.clientY - translateY };
-    canvasContainer.classList.add('grabbing');
-  });
-  document.addEventListener('mousemove', e => {
-    if (!isPanning) return;
-    translateX = e.clientX - startPan.x;
-    translateY = e.clientY - startPan.y;
-    drawLayout(lastFeederConfig);
-  });
-  document.addEventListener('mouseup', () => {
-    isPanning = false; canvasContainer.classList.remove('grabbing');
-  });
-  canvasContainer.addEventListener('wheel', e => {
-    e.preventDefault();
-    const mx = (e.clientX - translateX) / scale;
-    const my = (e.clientY - translateY) / scale;
-    const delta = -e.deltaY * 0.001;
-    const newScale = scale * (1 + delta);
-    translateX -= mx * (newScale - scale);
-    translateY -= my * (newScale - scale);
-    scale = newScale;
-    drawLayout(lastFeederConfig);
-  }, { passive: false });
-  let touchState = {};
-  canvasContainer.addEventListener('touchstart', e => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const [t1, t2] = e.touches;
-      touchState.initialDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      touchState.initialScale = scale;
-      touchState.center = { x: (t1.clientX + t2.clientX)/2 - translateX, y: (t1.clientY + t2.clientY)/2 - translateY };
-    } else if (e.touches.length === 1) {
-      isPanning = true;
-      startPan = { x: e.touches[0].clientX - translateX, y: e.touches[0].clientY - translateY };
-    }
-  }, { passive: false });
-  canvasContainer.addEventListener('touchmove', e => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const [t1, t2] = e.touches;
-      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      const newScale = touchState.initialScale * (dist / touchState.initialDist);
-      const cx = (t1.clientX + t2.clientX)/2;
-      const cy = (t1.clientY + t2.clientY)/2;
-      translateX = cx - touchState.center.x * newScale;
-      translateY = cy - touchState.center.y * newScale;
-      scale = newScale;
-      drawLayout(lastFeederConfig);
-    } else if (e.touches.length === 1 && isPanning) {
-      e.preventDefault();
-      translateX = e.touches[0].clientX - startPan.x;
-      translateY = e.touches[0].clientY - startPan.y;
-      drawLayout(lastFeederConfig);
-    }
-  }, { passive: false });
-  canvasContainer.addEventListener('touchend', () => { if (event.touches.length < 2) isPanning = false; });
-}
-touchEvents();
+  const container      = document.getElementById('canvasContainer'),
+        canvas         = document.getElementById('schematicCanvas'),
+        ctx            = canvas.getContext('2d'),
+        slider         = document.getElementById('zoomSlider'),
+        genBtn         = document.getElementById('genBtn'),
+        resetBtn       = document.getElementById('resetBtn'),
+        zoomInBtn      = document.getElementById('zoomInBtn'),
+        zoomOutBtn     = document.getElementById('zoomOutBtn'),
+        exportSvgBtn   = document.getElementById('exportSvgBtn'),
+        exportPdfBtn   = document.getElementById('exportPdfBtn'),
+        downloadLocBtn = document.getElementById('downloadLocBtn'),
+        downloadIdvBtn = document.getElementById('downloadIdvBtn'),
+        showCoordsChk  = document.getElementById('showCoords'),
+        leftPane       = document.getElementById('leftPane'),
+        locPane        = document.getElementById('locPane'),
+        idvPane        = document.getElementById('idvPane');
 
-// UI Elements
-const genBtn = document.getElementById('genBtn');
-const downloadLocBtn = document.getElementById('downloadLocBtn');
-const downloadBusIdvBtn = document.getElementById('downloadBusIdvBtn');
-const downloadCableIdvBtn = document.getElementById('downloadCableIdvBtn');
-const leftPane = document.getElementById('leftPane');
-const locPane = document.getElementById('locPane');
-const idvPane = document.getElementById('idvPane');
-const branchPane = document.getElementById('branchPane');
-let busCoords = [];
-let mvKV = 34.5, lvKV = 0.66;
+  let scale=1, panX=0, panY=0, isPanning=false, startX=0, startY=0;
 
-genBtn.addEventListener('click', generateCollector);
-
-def generateCollector() {
-  const total = +document.getElementById('total').value;
-  if (!total) return alert('Enter total inverters');
-  const perFeeder = +document.getElementById('perFeeder').value;
-  const custom = document.getElementById('customFeeder').value.trim();
-  mvKV = +document.getElementById('mvVoltage').value;
-  lvKV = +document.getElementById('lvVoltage').value;
-  let feederConfig = [], rem = total;
-  if (custom) {
-    feederConfig = custom.split(',').map(n=>+n).filter(n=>n>0);
-    let sum = feederConfig.reduce((a,b)=>a+b,0);
-    if (sum < total) while(sum++ < total) feederConfig.push(1);
-    else if (sum > total) {
-      let run = 0;
-      feederConfig = feederConfig.filter(n => {
-        if (run + n <= total) { run += n; return true; }
-        if (run < total) { feederConfig.push(total-run); run = total; return true; }
-        return false;
-      });
-    }
-  } else {
-    while (rem > 0) { const cnt = Math.min(perFeeder||total, rem); feederConfig.push(cnt); rem -= cnt; }
+  // Pan & Zoom
+  function updateTransform(){
+    canvas.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
   }
-  lastFeederConfig = feederConfig;
-  drawLayout(feederConfig);
-  updatePanes();
-}
-
-function drawLayout(feederConfig) {
-  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.restore();
-  ctx.save(); ctx.setTransform(scale,0,0,scale,translateX,translateY);
-  busCoords = [];
-  const baseY = 100, sx = 180, sy = 100;
-  const startX = 900 - ((feederConfig.length-1)/2) * sx;
-  const busY = baseY + 160;
-  // POI > GSU HV > XFMR > SUB-MV
-  ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(900, baseY); ctx.lineTo(900, baseY+80); ctx.lineTo(900, baseY+100); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(900, baseY+140); ctx.lineTo(900, busY); ctx.stroke();
-  // sub-MV bus bar
-  const busStartX = startX - sx/2;
-  const busEndX = startX + (feederConfig.length-1)*sx + sx/2;
-  ctx.strokeStyle = '#2c7a7b'; ctx.lineWidth = 8;
-  ctx.beginPath(); ctx.moveTo(busStartX, busY); ctx.lineTo(busEndX, busY); ctx.stroke();
-  // POI & GSU HV symbols
-  ctx.fillStyle='#0a66c2';
-  [['POI BUS',900,baseY],['GSU HV BUS',900,baseY+80]].forEach(([n,x,y])=>{
-    ctx.beginPath(); ctx.arc(x,y,10,0,2*Math.PI); ctx.fill(); ctx.fillStyle='#000'; ctx.fillText(n,x+15,y+5);
+  function resetView(){
+    scale=1; panX=0; panY=0; updateTransform(); slider.value=scale;
+  }
+  function zoomTo(ns,cx=canvas.clientWidth/2,cy=canvas.clientHeight/2){
+    panX -= (cx/scale - cx/ns);
+    panY -= (cy/scale - cy/ns);
+    scale=ns; updateTransform(); slider.value=ns;
+  }
+  slider.addEventListener('input', e=>zoomTo(+e.target.value));
+  zoomInBtn .addEventListener('click', ()=>zoomTo(Math.min(scale*1.1,10)));
+  zoomOutBtn.addEventListener('click', ()=>zoomTo(Math.max(scale*0.9,0.1)));
+  resetBtn  .addEventListener('click', resetView);
+  container.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const d=-e.deltaY*0.001,
+          ns=Math.min(Math.max(scale+d,0.1),10),
+          r=canvas.getBoundingClientRect();
+    zoomTo(ns,e.clientX-r.left,e.clientY-r.top);
   });
-  // XFMR
-  ctx.fillStyle='#2ecc71'; ctx.fillRect(890, baseY+100,20,40); ctx.fillStyle='#000'; ctx.fillText('GSU XFMR',920,baseY+125);
-  // SUB-MV label
-  ctx.fillStyle='#000'; ctx.fillText('SUB-MV BUS',915,busY+5);
-  // feeders
-  let invCounter=0;
-  feederConfig.forEach((count,f)=>{
-    const colX=startX+f*sx;
-    let prevY=busY;
-    for(let i=0;i<count;i++){
-      const mvY=baseY+260+i*sy;
-      const name=`INV${1001+invCounter}`;
-      const lvY=mvY+30, padY=lvY+30;
-      // connections
-      ctx.strokeStyle='#aaa'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(colX,prevY); ctx.lineTo(colX,mvY); ctx.stroke();
-      ctx.strokeStyle='#00c'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(colX,mvY); ctx.lineTo(colX,lvY); ctx.stroke();
-      ctx.strokeStyle='#0a66c2'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(colX,lvY); ctx.lineTo(colX,padY); ctx.stroke();
-      // MV bus bar
-      ctx.fillStyle='red'; ctx.fillRect(colX-10,mvY-2,20,4);
-      ctx.fillStyle='#000'; ctx.fillText(name,colX+15,mvY+5);
-      busCoords.push({name,x:colX,y:mvY});
-      // LV bus dot
-      ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(colX,lvY,6,0,2*Math.PI); ctx.fill(); ctx.fillStyle='#000'; ctx.fillText(name+'_LV',colX+12,lvY+5);
-      busCoords.push({name:`${name}_LV`,x:colX,y:lvY});
-      // pad
-      ctx.fillStyle='#2ecc71'; ctx.fillRect(colX-8,padY-8,16,16); ctx.fillStyle='#000'; ctx.fillText('PAD',colX+12,padY+5);
-      prevY=padY; invCounter++;
+  container.addEventListener('mousedown', e=>{
+    isPanning=true; container.classList.add('grabbing');
+    startX=e.clientX-panX; startY=e.clientY-panY;
+  });
+  document.addEventListener('mousemove', e=>{
+    if(!isPanning) return;
+    panX=e.clientX-startX; panY=e.clientY-startY; updateTransform();
+  });
+  document.addEventListener('mouseup', ()=>{ isPanning=false; container.classList.remove('grabbing'); });
+
+  // Action buttons
+  genBtn        .addEventListener('click', generateCollector);
+  exportSvgBtn  .addEventListener('click', exportSVG);
+  exportPdfBtn  .addEventListener('click', exportPNGasPDF);
+  downloadLocBtn.addEventListener('click', downloadLOC);
+  downloadIdvBtn.addEventListener('click', downloadIDV);
+  showCoordsChk .addEventListener('change', updatePanes);
+
+  // Generate layout & redraw
+  function generateCollector(){
+    const total     = +document.getElementById('total').value;
+    if(!total) return alert('Enter total inverters');
+    const perFeeder = +document.getElementById('perFeeder').value,
+          custom    = document.getElementById('customFeeder').value.trim(),
+          capacitor = +document.getElementById('capacitor').value,
+          mvV       = +document.getElementById('mvVoltage').value,
+          lvV       = +document.getElementById('lvVoltage').value,
+          impedance = +document.getElementById('impedance').value,
+          lvLoad    = document.getElementById('lvLoad').checked;
+    mvKV = mvV; lvKV = lvV;
+
+    let feederConfig=[], rem=total;
+    if(custom){
+      feederConfig = custom.split(',').map(n=>+n).filter(n=>n>0);
+      let sum=feederConfig.reduce((a,b)=>a+b,0);
+      if(sum<total) while(sum++<total) feederConfig.push(1);
+      else if(sum>total){
+        let run=0;
+        feederConfig = feederConfig.filter(n=>{
+          if(run+n<=total){ run+=n; return true; }
+          if(run<total){ feederConfig.push(total-run); run=total; return true; }
+          return false;
+        });
+      }
+    } else {
+      while(rem>0){
+        const cnt=Math.min(perFeeder||total,rem);
+        feederConfig.push(cnt); rem-=cnt;
+      }
     }
-  });
-  ctx.restore();
-}
 
-function updatePanes() {
-  const coords=busCoords;
-  leftPane.textContent=coords.map(b=>`${b.name.padEnd(12)} (${Math.round(b.x)}, ${Math.round(b.y)})`).join('\n');
-  let loc='GEOPHYSICAL\n';
-  coords.forEach(b=>{const n=getBusNum(b.name);const lon=Math.abs(b.x).toFixed(6)+(b.x<0?'W':'E');const lat=Math.abs(b.y).toFixed(6)+(b.y<0?'S':'N');loc+=`${n}  ${lon}  ${lat}  90  0.80\n`;});
-  loc+='BRANCHES\n'; locPane.textContent=loc;
-  let idv='';
-  coords.forEach(b=>{const n=getBusNum(b.name);const t=b.name.endsWith('_LV')?2:1;const kv=(t===2?lvKV:mvKV).toFixed(2);idv+=`BAT_BUS_DATA_4,${n},0,1,1,1,1,0.0,1.0,0.0,1.1,0.9,1.1,0.9,\" \"\n`;idv+=`BAT_BUS_CHNG_4,${n},0,${t},,,,,,${kv},,,,,,,,'${b.name}'\n\n`;});
-  idvPane.textContent=idv;
-  const feeders=[];let idx=0;
-  lastFeederConfig.forEach(c=>{const arr=[];for(let i=0;i<c;i++){arr.push(getBusNum(`INV${1001+idx}`));idx++;}feeders.push(arr);});
-  let br='';
-  feeders.forEach(list=>{if(list.length){br+=`BAT_BRANCH_DATA_3,201,${list[0]},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.၀,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,\" \"\n`;br+=`BAT_BRANCH_CHNG_3,201,${list[0]},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,;,\n`;br+=`BAT_NEWSEQ,;\n`;br+=`BAT_SEQ_BRANCH_DATA_3,201,${list[0]},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`;for(let i=0;i<list.length-1;i++){const a=list[i],b=list[i+1];br+=`BAT_BRANCH_DATA_3,${a},${b},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,\" \"\n`;br+=`BAT_BRANCH_CHNG_3,${a},${b},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;,\n`;br+=`BAT_NEWSEQ,;\n`;br+=`BAT_SEQ_BRANCH_DATA_3,${a},${b},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`;}}});
-  branchPane.textContent=br;
-}
+    parsedLayout=[];
+    feederConfig.forEach((cnt,i)=>{
+      for(let j=0;j<cnt;j++){
+        parsedLayout.push({
+          feeder:    i+1,
+          inverter: parsedLayout.length+1,
+          capacitor, voltageMV:mvV, voltageLV:lvV, impedance,
+          hasLoad:   lvLoad
+        });
+      }
+    });
 
-function getBusNum(name){if(name==='POI BUS')return 100;if(name==='GSU HV BUS')return 101;if(name==='SUB-MV BUS')return 201;const m=name.match(/INV(\d+)/);if(m){const n=parseInt(m[1],10);return name.endsWith('_LV')?n*10:n;}return 0;}
+    drawLayout(feederConfig);
+    fitToContainer();
+    updatePanes();
+  }
 
-// Download Handlers
-downloadLocBtn.addEventListener('click',()=>{const txt=locPane.textContent;if(!txt) return alert('Generate first');const blob=new Blob([txt],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='buses.loc';a.click();URL.revokeObjectURL(a.href);});
-downloadBusIdvBtn.addEventListener('click',()=>{const txt=idvPane.textContent;if(!txt) return alert('Generate first');const blob=new Blob([txt],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bus.idv';a.click();URL.revokeObjectURL(a.href);});
-downloadCableIdvBtn.addEventListener('click',()=>{const txt=branchPane.textContent;if(!txt) return alert('Generate first');const blob=new Blob([txt],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cable.idv';a.click();URL.revokeObjectURL(a.href);});
+  // drawLayout same as before, populating busCoords
+  function drawLayout(feederConfig){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    updateTransform();
+    busCoords=[];
+
+    const startX=100, poiY=100, gsuY=poiY+80, mvY=gsuY+80,
+          sx=180, sy=100, bLen=50, poiLen=200,
+          midX=startX+feederConfig.length*sx/2,
+          poiStart=midX-poiLen/2, poiEnd=midX+poiLen/2;
+    poiOrigin={x:midX,y:poiY};
+
+    const line=(x1,y1,x2,y2,c,w=2)=>{
+      ctx.save(); ctx.strokeStyle=c; ctx.lineWidth=w;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore();
+    };
+
+    // POI BUS
+    line(poiStart,poiY,poiEnd,poiY,'#000',3);
+    ctx.save(); ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText('POI BUS',poiStart,poiY-10); ctx.restore();
+    busCoords.push({name:'POI BUS',x:poiStart-poiOrigin.x+poiLen/2,y:0,padWidth:poiLen/2,padHeight:0});
+
+    // Generator & T-Line
+    ctx.save(); ctx.beginPath(); ctx.arc(midX,poiY-30,10,0,2*Math.PI); ctx.stroke(); ctx.fillText('Generator',midX-30,poiY-45); ctx.restore();
+    line(midX,poiY-20,midX,poiY); line(midX,poiY,midX,gsuY); ctx.save(); ctx.fillText('T-Line',midX+10,(poiY+gsuY)/2); ctx.restore();
+
+    // GSU HV BUS
+    line(poiStart,gsuY,poiEnd,gsuY,'#0a66c2',4);
+    ctx.save(); ctx.fillText('GSU HV BUS',poiStart,gsuY-10); ctx.restore();
+    busCoords.push({name:'GSU HV BUS',x:poiStart-poiOrigin.x+poiLen/2,y:gsuY-poiOrigin.y,padWidth:poiLen/2,padHeight:20});
+
+    // Transformer
+    const xfH=40, xfT=(gsuY+mvY)/2-xfH/2;
+    line(midX,gsuY,midX,xfT,'#2ecc71',2);
+    ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(midX-10,xfT,20,xfH); ctx.restore();
+    line(midX,xfT+xfH,midX,mvY,'#2ecc71',2);
+
+    // SUB-MV BUS
+    const subW=feederConfig.length*sx;
+    line(startX,mvY,startX+subW,mvY,'#0a66c2',4);
+    ctx.save(); ctx.fillText('SUB-MV BUS',startX,mvY-10); ctx.restore();
+    busCoords.push({name:'SUB-MV BUS',x:startX-poiOrigin.x+subW/2,y:mvY-poiOrigin.y,padWidth:subW/2,padHeight:0});
+
+    // Feeders & Inverters
+    let invC=0, fx=startX+40;
+    feederConfig.forEach((cnt,fi)=>{
+      const botY=mvY+cnt*sy;
+      line(fx,mvY,fx,botY,'#444',2);
+      for(let j=0;j<cnt;j++){
+        const y=mvY+(j+1)*sy, nm=`INV${1001+invC}`;
+        line(fx,y,fx+bLen,y,'#0a66c2',2);
+        ctx.save(); ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(fx,y,4,0,2*Math.PI); ctx.fill(); ctx.fillText(nm,fx-55,y-10); ctx.restore();
+        busCoords.push({name:nm,x:fx-poiOrigin.x,y:y-poiOrigin.y,padWidth:bLen+12,padHeight:sy/2});
+        ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(fx+bLen,y-10,20,20); ctx.restore();
+        const tX=fx+bLen+10, tT=y+10, tB=y+40, tM=(tT+tB)/2;
+        line(tX,tT,tX,tB,'#ff9900',2);
+        ctx.save(); ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(tX,tM,4,0,2*Math.PI); ctx.fill(); ctx.fillText(`${nm}_LV`,tX+10,tM+10); ctx.restore();
+        busCoords.push({name:`${nm}_LV`,x:tX-poiOrigin.x,y:tM-poiOrigin.y,padWidth:12,padHeight:12});
+        ctx.save(); ctx.fillStyle='#ffcc00'; ctx.fillRect(fx+bLen-2,tB,24,24); ctx.restore();
+        ctx.save(); ctx.fillStyle='#000'; ctx.fillText(`I${invC+1}`,fx+bLen-5,tB+35); ctx.restore();
+        if(parsedLayout[invC].hasLoad){
+          ctx.save(); ctx.fillStyle='#ff4444'; ctx.beginPath(); ctx.arc(tX+20,tB+12,5,0,2*Math.PI); ctx.fill(); ctx.restore();
+        }
+        invC++;
+      }
+      const base=11+Math.floor(fi/2), suf=fi%2?'B':'A', flbl=`${base}${suf}`;
+      ctx.save(); ctx.fillText(flbl,fx-10,botY+30); ctx.restore();
+      const m=ctx.measureText(flbl);
+      busCoords.push({name:flbl,x:fx-poiOrigin.x,y:botY+30-poiOrigin.y,padWidth:m.width/2,padHeight:0});
+      fx+=sx;  
+    });
+  }
+
+  function updatePanes(){
+    if(!showCoordsChk.checked){
+      leftPane.textContent='Bus coords appear here.';
+      locPane.textContent='';
+      idvPane.textContent='';
+      return;
+    }
+    const coordsOnly = busCoords.filter(b=>!/^\d+(?:A|B)$/.test(b.name));
+
+    // left
+    leftPane.textContent = coordsOnly.map(b=>{
+      const lon=Math.abs(b.x).toFixed(0).padStart(4)+(b.x<0?'W':'E'),
+            lat=Math.abs(b.y).toFixed(0).padStart(4)+(b.y<0?'S':'N');
+      return `${b.name.padEnd(12)} (${lon}, ${lat})`;
+    }).join('\n');
+
+    // .loc
+    let loc='GEOPHYSICAL\n';
+    coordsOnly.forEach(b=>{
+      let num;
+      if(b.name==='POI BUS')        num=100;
+      else if(b.name==='GSU HV BUS') num=101;
+      else if(b.name==='SUB-MV BUS') num=201;
+      else {
+        const d=(b.name.match(/\d+/)||[''])[0];
+        num=b.name.endsWith('_LV')?d[0]+'0'+d.slice(1):d;
+      }
+      const lon6=Math.abs(b.x).toFixed(6)+(b.x<0?'W':'E'),
+            lat6=Math.abs(b.y).toFixed(6)+(b.y<0?'S':'N');
+      loc+=`${num}  ${lon6}  ${lat6}  90  0.80\n`;
+    });
+    loc+='BRANCHES\n';
+    locPane.textContent=loc;
+
+    // .idv + branches
+    let idv='';
+    // first bus data & chng
+    coordsOnly.forEach(b=>{
+      let num;
+      if(b.name==='POI BUS')        num=100;
+      else if(b.name==='GSU HV BUS') num=101;
+      else if(b.name==='SUB-MV BUS') num=201;
+      else {
+        const d=(b.name.match(/\d+/)||[''])[0];
+        num=b.name.endsWith('_LV')?d[0]+'0'+d.slice(1):d;
+      }
+      const type=b.name.endsWith('_LV')?2:1,
+            kv  = type===2?lvKV.toFixed(2):mvKV.toFixed(2),
+            busName=b.name,
+            data  = `BAT_BUS_DATA_4,${num},0,1,1,1,1,0.0,1.0,0.0,1.1,0.9,1.1,0.9," "`,
+            chng  = `BAT_BUS_CHNG_4,${num},0,${type},,,,,,${kv},,,,,,,,'${busName}'`;
+      idv += data + '\n' + chng + '\n\n';
+    });
+
+    // collect MV inverter numbers in order
+    const mvNums = coordsOnly
+      .filter(b=>/^INV\d+$/.test(b.name))
+      .map(b=>{
+        const d=b.name.match(/\d+/)[0];
+        return Number(d);
+      })
+      .sort((a,b)=>a-b);
+
+    // first branch: SUB-MV (201) to INV1001
+    const branches = [];
+    if(mvNums.length){
+      // subMV → first INV
+      branches.push([201, mvNums[0]]);
+      // chain INV → next INV
+      for(let i=0; i<mvNums.length-1; i++){
+        branches.push([mvNums[i], mvNums[i+1]]);
+      }
+    }
+
+    // emit branch blocks
+    branches.forEach(([a,b])=>{
+      idv += 
+`BAT_BRANCH_DATA_3,${a},${b},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0," "
+BAT_BRANCH_CHNG_3,${a},${b},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;
+BAT_NEWSEQ,;
+BAT_SEQ_BRANCH_DATA_3,${a},${b},'2',,6666.0,7777.0,8888.0,,,,,,;
+
+`;
+    });
+
+    idvPane.textContent = idv;
+  }
+
+  function fitToContainer(m=40){
+    if(!busCoords.length) return;
+    const allX=[], allY=[];
+    busCoords.forEach(p=>{
+      const ax=p.x+poiOrigin.x, ay=p.y+poiOrigin.y;
+      allX.push(ax-p.padWidth,ax+p.padWidth);
+      allY.push(ay-p.padHeight,ay+p.padHeight);
+    });
+    const minX=Math.min(...allX), maxX=Math.max(...allX),
+          minY=Math.min(...allY), maxY=Math.max(...allY),
+          cW=(maxX-minX)+m*2, cH=(maxY-minY)+m*2,
+          CW=container.clientWidth, CH=container.clientHeight,
+          sX=CW/cW, sY=CH/cH,
+          oX=(CW-cW*sX)/2-(minX-m)*sX,
+          oY=(CH-cH*sY)/2-(minY-m)*sY;
+    canvas.style.transform=`translate(${oX}px,${oY}px) scale(${sX},${sY})`;
+    scale=Math.min(sX,sY); slider.value=scale; panX=oX; panY=oY;
+  }
+
+  function exportSVG(){
+    const a=document.createElement('a');
+    a.download='schematic.svg'; a.href=canvas.toDataURL('image/svg+xml'); a.click();
+  }
+  function exportPNGasPDF(){
+    const img=canvas.toDataURL('image/png'), w=window.open();
+    w.document.write(`<img src="${img}" style="width:100%">`);
+  }
+  function downloadLOC(){
+    const txt = locPane.textContent;
+    if(!txt) return alert('Generate first');
+    const blob=new Blob([txt],{type:'text/plain'}), a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='buses.loc'; a.click(); URL.revokeObjectURL(a.href);
+  }
+  function downloadIDV(){
+    const txt = idvPane.textContent;
+    if(!txt) return alert('Generate first');
+    const blob=new Blob([txt],{type:'text/plain'}), a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='buses.idv'; a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  window.addEventListener('resize', () => fitToContainer(40));
+  if('ResizeObserver' in window) new ResizeObserver(()=> fitToContainer(40)).observe(container);
+});
 </script>
 </body>
 </html>
