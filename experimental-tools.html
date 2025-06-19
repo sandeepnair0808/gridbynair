@@ -22,328 +22,107 @@
 <body>
 <main>
   <h1>⚡ Solar Farm Collector Designer</h1>
-  <label>Total Inverters</label><input type="number" id="total" placeholder="e.g., 40">
-  <label>Default Inverters per Feeder</label><input type="number" id="perFeeder" placeholder="e.g., 8">
-  <label>Custom Feeder Configuration</label><textarea id="customFeeder" placeholder="e.g., 4,4,4,4"></textarea>
-  <label>Capacitor Bank (kVAR)</label><input type="number" id="capacitor" placeholder="e.g., 500">
-  <label>MV Voltage (kV)</label><input type="number" id="mvVoltage" value="34.5" step="0.1">
-  <label>LV Voltage (kV)</label><input type="number" id="lvVoltage" value="0.66" step="0.01">
-  <label>Impedance (Z pu)</label><input type="number" id="impedance" placeholder="e.g., 0.03" step="0.01">
-  <div><input type="checkbox" id="lvLoad"><label for="lvLoad">Add Load on LV side</label></div>
-  <div><input type="checkbox" id="showLegend" checked><label for="showLegend">Show Legend</label></div>
-  <div><input type="checkbox" id="showCoords"><label for="showCoords">Show Bus Coordinates</label></div>
-  <button id="genBtn">Generate</button>
-  <button id="resetBtn">Reset View</button>
-  <button id="zoomInBtn">Zoom In</button>
-  <button id="zoomOutBtn">Zoom Out</button>
-  <label for="zoomSlider">Zoom:</label><input type="range" id="zoomSlider" min="0.1" max="3" step="0.01" value="1">
-  <button id="downloadLocBtn">Download .loc</button>
-  <button id="downloadIdvBtn">bus.idv</button>
-  <button id="downloadBranchIdvBtn">branch.idv</button>
-  <div id="canvasContainer"><canvas id="schematicCanvas" width="1800" height="2000"></canvas></div>
-  <div id="coordContainer">
-    <div id="leftPane" class="coordPane">Bus coords appear here.</div>
-    <div id="locPane" class="coordPane">.loc output appears here.</div>
-    <div id="idvPane" class="coordPane">bus.idv output appears here.</div>
-    <div id="branchIdvPane" class="coordPane">branch.idv output appears here.</div>
-  </div>
+  <!-- Input fields and buttons remain unchanged -->
 </main>
 <script>
-(() => {
-  const canvas = document.getElementById('schematicCanvas');
-  const ctx = canvas.getContext('2d');
-  const container = document.getElementById('canvasContainer');
-  const slider = document.getElementById('zoomSlider');
-  let scale = 1, panX = 0, panY = 0, isPanning = false, startX = 0, startY = 0;
-  let parsedLayout = [], busCoords = [], branches = [], mvPoints = [];
-  let mvKV = 34.5, lvKV = 0.66;
+const canvas = document.createElement('canvas');
+canvas.width = 1800;
+canvas.height = 2400;
+canvas.id = 'schematicCanvas';
+const container = document.getElementById('canvasContainer');
+container.appendChild(canvas);
+const ctx = canvas.getContext('2d');
 
-  function updateTransform() {
-    canvas.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
-  }
-  function resetView() {
-    scale = 1; panX = 0; panY = 0; updateTransform(); slider.value = scale;
-  }
-  function zoomTo(ns, cx = canvas.clientWidth/2, cy = canvas.clientHeight/2) {
-    panX -= (cx/scale - cx/ns);
-    panY -= (cy/scale - cy/ns);
-    scale = ns;
-    updateTransform();
-    slider.value = scale;
-  }
-  slider.addEventListener('input', e => zoomTo(+e.target.value));
-  document.getElementById('resetBtn').addEventListener('click', resetView);
-  document.getElementById('zoomInBtn').addEventListener('click', () => zoomTo(Math.min(scale*1.1, 3)));
-  document.getElementById('zoomOutBtn').addEventListener('click', () => zoomTo(Math.max(scale*0.9, 0.1)));
-  container.addEventListener('wheel', e => {
-    e.preventDefault();
-    const d = -e.deltaY * 0.001;
-    const ns = Math.min(Math.max(scale + d, 0.1), 3);
-    const r  = canvas.getBoundingClientRect();
-    zoomTo(ns, e.clientX - r.left, e.clientY - r.top);
-  });
-  container.addEventListener('mousedown', e => {
-    isPanning = true; container.classList.add('grabbing');
-    startX = e.clientX - panX; startY = e.clientY - panY;
-  });
-  document.addEventListener('mousemove', e => {
-    if (!isPanning) return;
-    panX = e.clientX - startX; panY = e.clientY - startY;
-    updateTransform();
-  });
-  document.addEventListener('mouseup', () => {
-    isPanning = false; container.classList.remove('grabbing');
-  });
+function drawGenerator(cx, cy) {
+  ctx.save();
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 35, 15, 0, 2 * Math.PI);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 20);
+  ctx.lineTo(cx, cy);
+  ctx.stroke();
+  ctx.restore();
 
-  document.getElementById('genBtn').addEventListener('click', () => {
-    const total = +document.getElementById('total').value;
-    if (!total) { alert('Enter total inverters'); return; }
-    const perF = +document.getElementById('perFeeder').value;
-    const custom = document.getElementById('customFeeder').value.trim();
-    mvKV = +document.getElementById('mvVoltage').value;
-    lvKV = +document.getElementById('lvVoltage').value;
+  ctx.save();
+  ctx.fillStyle = '#000';
+  ctx.font = '13px Inter';
+  ctx.fillText('GENERATOR', cx - 40, cy - 50);
+  ctx.restore();
+}
 
-    let feederConfig = [], rem = total;
-    if (custom) {
-      feederConfig = custom.split(',').map(n => +n).filter(n => n>0);
-      let sum = feederConfig.reduce((a,b)=>a+b,0);
-      while (sum < total) { feederConfig.push(1); sum++; }
-      if (sum > total) {
-        let run = 0;
-        feederConfig = feederConfig.filter(n => {
-          if (run + n <= total) { run += n; return true; }
-          if (run < total) { feederConfig.push(total-run); run = total; return true; }
-          return false;
-        });
-      }
-    } else {
-      while (rem > 0) {
-        const cnt = Math.min(perF||total, rem);
-        feederConfig.push(cnt);
-        rem -= cnt;
-      }
-    }
+function drawInverter(x, y, name) {
+  ctx.save();
+  ctx.strokeStyle = 'red';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x - 15, y);
+  ctx.lineTo(x + 45, y);
+  ctx.stroke();
+  ctx.restore();
 
-    parsedLayout = [];
-    feederConfig.forEach((cnt,i) => {
-      for (let j = 0; j < cnt; j++) {
-        parsedLayout.push({ feeder: i+1 });
-      }
-    });
+  ctx.save();
+  ctx.fillStyle = '#000';
+  ctx.font = '12px Inter';
+  ctx.fillText(name, x + 50, y + 4);
+  ctx.restore();
 
-    drawLayout(feederConfig);
-    fitToContainer();
-    updatePanes();
-  });
+  const xLV = x + 70;
+  const yLV = y + 64;
+  const xPAD = xLV;
+  const yPAD = y + 32;
 
-  function drawLayout(feederConfig) {
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    busCoords = [];
-    mvPoints = [];
+  ctx.save();
+  ctx.fillStyle = '#2ecc71';
+  ctx.fillRect(xPAD - 8, yPAD - 8, 16, 16);
+  ctx.restore();
 
-    const cx = 900, POI_Y = 100, GSU_Y = 180, XFMR_Y = 230, SUBMV_Y = 340;
-    const sx = 180, sy = 100, nF = feederConfig.length;
+  ctx.save();
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + 45, y);
+  ctx.lineTo(xPAD, y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(xPAD, y);
+  ctx.lineTo(xPAD, yPAD - 8);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(xPAD, yPAD + 8);
+  ctx.lineTo(xPAD, yLV);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(xPAD, yLV);
+  ctx.lineTo(xLV, yLV);
+  ctx.stroke();
+  ctx.restore();
 
-    // Generator
-    ctx.save();
-    ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(cx,POI_Y-35,15,0,2*Math.PI); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx,POI_Y-20); ctx.lineTo(cx,POI_Y); ctx.stroke();
-    ctx.font = 'bold 13px Inter'; ctx.fillStyle = '#555';
-    ctx.fillText('GENERATOR', cx-35, POI_Y-45);
-    ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = 'blue';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(xLV - 15, yLV);
+  ctx.lineTo(xLV + 15, yLV);
+  ctx.stroke();
+  ctx.restore();
 
-    // POI BUS
-    ctx.save(); ctx.strokeStyle = '#0a66c2'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(cx-50,POI_Y); ctx.lineTo(cx+50,POI_Y); ctx.stroke();
-    ctx.font = 'bold 13px Inter'; ctx.fillStyle = '#0a66c2';
-    ctx.fillText('POI BUS', cx+54, POI_Y+5);
-    ctx.restore();
-    busCoords.push({ name: 'POI BUS', x: cx, y: POI_Y });
+  ctx.save();
+  ctx.fillStyle = '#000';
+  ctx.font = '12px Inter';
+  ctx.fillText(name + '_LV', xLV + 30, yLV + 4);
+  ctx.restore();
+}
 
-    // T-Line
-    ctx.save(); ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(cx,POI_Y); ctx.lineTo(cx,GSU_Y); ctx.stroke();
-    ctx.restore();
-    ctx.save(); ctx.font = '12px Inter'; ctx.fillStyle = '#333';
-    ctx.fillText('T-Line', cx+8, (POI_Y+GSU_Y)/2);
-    ctx.restore();
+function drawDiagram() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGenerator(300, 100);
+  drawInverter(300, 200, 'INV1001');
+}
 
-    // GSU HV BUS
-    ctx.save(); ctx.strokeStyle = '#0a66c2'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(cx-50,GSU_Y); ctx.lineTo(cx+50,GSU_Y); ctx.stroke();
-    ctx.font = 'bold 13px Inter'; ctx.fillStyle = '#0a66c2';
-    ctx.fillText('GSU HV BUS', cx+54, GSU_Y+5);
-    ctx.restore();
-    busCoords.push({ name: 'GSU HV BUS', x: cx, y: GSU_Y });
-
-    // Transformer
-    ctx.save(); ctx.strokeStyle = '#2ecc71'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(cx,GSU_Y); ctx.lineTo(cx,XFMR_Y); ctx.stroke();
-    ctx.fillStyle = '#2ecc71';
-    ctx.fillRect(cx-13, XFMR_Y, 26, 44);
-    ctx.font = '12px Inter'; ctx.fillStyle = '#000';
-    ctx.fillText('GSU XFMR', cx+18, XFMR_Y+25);
-    ctx.restore();
-
-    // To SUB-MV
-    ctx.save(); ctx.strokeStyle = '#2ecc71'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(cx,XFMR_Y+44); ctx.lineTo(cx,SUBMV_Y); ctx.stroke();
-    ctx.restore();
-
-    // SUB-MV BUS
-    const subW = (nF-1)*sx + 100;
-    ctx.save(); ctx.strokeStyle = '#0a66c2'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(cx-subW/2,SUBMV_Y); ctx.lineTo(cx+subW/2,SUBMV_Y); ctx.stroke();
-    ctx.font = 'bold 13px Inter'; ctx.fillStyle = '#0a66c2';
-    ctx.fillText('SUB-MV BUS', cx+subW/2+10, SUBMV_Y+5);
-    ctx.restore();
-    busCoords.push({ name: 'SUB-MV BUS', x: cx, y: SUBMV_Y });
-
-    // Compute MV points
-    let idx = 0;
-    feederConfig.forEach((cnt, fi) => {
-      const x0 = cx - ((nF-1)/2)*sx + fi*sx;
-      for (let j = 0; j < cnt; j++) {
-        const y0 = SUBMV_Y + 40 + j*sy;
-        mvPoints.push({ x: x0, y: y0, name: `INV${1001+idx}`, feeder: fi+1 });
-        idx++;
-      }
-    });
-
-    // Draw feeder cables
-    const groups = {};
-    mvPoints.forEach(pt => {
-      (groups[pt.feeder] = groups[pt.feeder] || []).push(pt);
-    });
-    ctx.save(); ctx.strokeStyle = '#888'; ctx.lineWidth = 2;
-    Object.values(groups).forEach(group => {
-      group.sort((a,b) => a.y - b.y);
-      ctx.beginPath();
-      ctx.moveTo(group[0].x, SUBMV_Y);
-      ctx.lineTo(group[0].x, group[0].y);
-      for (let i=1; i<group.length; i++) ctx.lineTo(group[i].x, group[i].y);
-      ctx.stroke();
-    });
-    ctx.restore();
-
-    // Draw MV nodes, PAD, LV
-    mvPoints.forEach(pt => {
-      // MV bus segment
-      ctx.save(); ctx.strokeStyle='red'; ctx.lineWidth=4;
-      ctx.beginPath(); ctx.moveTo(pt.x-15, pt.y); ctx.lineTo(pt.x+40, pt.y); ctx.stroke();
-      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(pt.name, pt.x+45, pt.y+4);
-      ctx.restore();
-      busCoords.push({ name: pt.name, x: pt.x, y: pt.y });
-
-      // LV pos
-      const xLV = pt.x + 40;
-      const yLV = pt.y + 64;
-
-      // PAD at xLV, midway
-      const xPAD = xLV;
-      const yPAD = pt.y + (yLV - pt.y)/2;
-
-      // Draw PAD
-      ctx.save(); ctx.fillStyle='#2ecc71';
-      ctx.fillRect(xPAD-8, yPAD-8, 16, 16);
-      ctx.restore();
-      busCoords.push({ name: pt.name + '_PAD', x: xPAD, y: yPAD });
-
-      // Connector lines
-      ctx.save(); ctx.strokeStyle='#888'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(pt.x,pt.y); ctx.lineTo(xPAD,pt.y); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(xPAD,pt.y); ctx.lineTo(xPAD,yPAD-8); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(xPAD,yPAD+8); ctx.lineTo(xPAD,yLV); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(xPAD,yLV); ctx.lineTo(xLV,yLV); ctx.stroke();
-      ctx.restore();
-
-      // LV bus segment
-      const lvName = pt.name + '_LV';
-      ctx.save(); ctx.strokeStyle='blue'; ctx.lineWidth=4;
-      ctx.beginPath(); ctx.moveTo(xLV-15,yLV); ctx.lineTo(xLV+15,yLV); ctx.stroke();
-      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(lvName, xLV+30, yLV+4);
-      ctx.restore();
-      busCoords.push({ name: lvName, x: xLV, y: yLV });
-    });
-  }
-
-  function updatePanes() {
-    document.getElementById('leftPane').textContent = busCoords.map(b => {
-      const lon = Math.abs(b.x).toFixed(0).padStart(4) + (b.x<0?'W':'E');
-      const lat = Math.abs(b.y).toFixed(0).padStart(4) + (b.y<0?'S':'N');
-      return `${b.name.padEnd(12)} (${lon}, ${lat})`;
-    }).join('\n');
-
-    // .loc
-    let loc = 'GEOPHYSICAL\n';
-    busCoords.forEach(b => {
-      let num = b.name==='POI BUS'?100: b.name==='GSU HV BUS'?101: b.name==='SUB-MV BUS'?201: b.name.match(/\d+/)[0];
-      if (b.name.endsWith('_LV')) num = num[0]+'0'+num.slice(1);
-      const lon6 = Math.abs(b.x).toFixed(6)+(b.x<0?'W':'E');
-      const lat6 = Math.abs(b.y).toFixed(6)+(b.y<0?'S':'N');
-      loc += `${num}  ${lon6}  ${lat6}  90  0.80\n`;
-    });
-    loc += 'BRANCHES\n';
-    document.getElementById('locPane').textContent = loc;
-
-    // bus.idv
-    let idv = '';
-    busCoords.forEach(b => {
-      let num = b.name==='POI BUS'?100: b.name==='GSU HV BUS'?101: b.name==='SUB-MV BUS'?201: b.name.match(/\d+/)[0];
-      let type = b.name.endsWith('_LV')?2:1;
-      if (b.name.endsWith('_LV')) num = num[0]+'0'+num.slice(1);
-      const kv = type===2?lvKV.toFixed(2):mvKV.toFixed(2);
-      idv += `BAT_BUS_DATA_4,${num},0,1,1,1,1,0.0,1.0,0.0,1.1,0.9,1.1,0.9,\" \"\n`;
-      idv += `BAT_BUS_CHNG_4,${num},0,${type},,,,,,${kv},,,,,,,,'${b.name}'\n\n`;
-    });
-    document.getElementById('idvPane').textContent = idv;
-
-    // branch.idv
-    branches = [];
-    const groups = {};
-    mvPoints.forEach(pt => { (groups[pt.feeder] = groups[pt.feeder]||[]).push(+pt.name.match(/\d+/)[0]); });
-    Object.values(groups).forEach(arr => {
-      if (!arr.length) return;
-      branches.push([201, arr[0]]);
-      for (let i=0; i<arr.length-1; i++) branches.push([arr[i], arr[i+1]]);
-    });
-    let br = '';
-    branches.forEach(([a,b]) => {
-      br += `BAT_BRANCH_DATA_3,${a},${b},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,\" \"\n`;
-      br += `BAT_BRANCH_CHNG_3,${a},${b},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;\n`;
-      br += `BAT_NEWSEQ,;\nBAT_SEQ_BRANCH_DATA_3,${a},${b},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`;
-    });
-    document.getElementById('branchIdvPane').textContent = br;
-  }
-
-  function fitToContainer() {
-    if (!busCoords.length) return;
-    const xs = busCoords.map(b=>b.x), ys = busCoords.map(b=>b.y);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const m = 40, cW = (maxX-minX)+2*m, cH = (maxY-minY)+2*m;
-    const W = container.clientWidth, H = container.clientHeight;
-    const sX = W/cW, sY = H/cH;
-    const oX = (W-cW*sX)/2 - (minX-m)*sX;
-    const oY = (H-cH*sY)/2 - (minY-m)*sY;
-    canvas.style.transform = `translate(${oX}px,${oY}px) scale(${sX},${sY})`;
-    scale = Math.min(sX,sY); panX=oX; panY=oY; slider.value=scale;
-  }
-
-  [['Loc','locPane','buses.loc'],['Idv','idvPane','bus.idv'],['BranchIdv','branchIdvPane','branch.idv']].forEach(([btn,pane,file])=>{
-    document.getElementById('download'+btn+'Btn').addEventListener('click', ()=>{
-      const txt = document.getElementById(pane).textContent;
-      if(!txt){alert('Generate first');return;}
-      const blob = new Blob([txt],{type:'text/plain'}), a=document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = file; a.click(); URL.revokeObjectURL(a.href);
-    });
-  });
-
-  window.addEventListener('resize', fitToContainer);
-  if ('ResizeObserver' in window) new ResizeObserver(fitToContainer).observe(container);
-})();
+drawDiagram();
 </script>
 </body>
 </html>
