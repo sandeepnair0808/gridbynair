@@ -232,8 +232,8 @@
     mvPoints.forEach(pt => {
       // MV bus segment
       ctx.save(); ctx.strokeStyle='red'; ctx.lineWidth=4;
-      ctx.beginPath(); ctx.moveTo(pt.x-15,pt.y); ctx.lineTo(pt.x+15,pt.y); ctx.stroke();
-      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(pt.name, pt.x+18, pt.y+4);
+      ctx.beginPath(); ctx.moveTo(pt.x-15, pt.y); ctx.lineTo(pt.x+40, pt.y); ctx.stroke();
+      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(pt.name, pt.x+45, pt.y+4);
       ctx.restore();
       busCoords.push({ name: pt.name, x: pt.x, y: pt.y });
 
@@ -263,7 +263,7 @@
       const lvName = pt.name + '_LV';
       ctx.save(); ctx.strokeStyle='blue'; ctx.lineWidth=4;
       ctx.beginPath(); ctx.moveTo(xLV-15,yLV); ctx.lineTo(xLV+15,yLV); ctx.stroke();
-      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(lvName, xLV+18, yLV+4);
+      ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(lvName, xLV+30, yLV+4);
       ctx.restore();
       busCoords.push({ name: lvName, x: xLV, y: yLV });
     });
