@@ -103,8 +103,32 @@
     const subW=(nF-1)*sx+100;ctx.save();ctx.strokeStyle='#0a66c2';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(cx-subW/2,SUBMV_Y);ctx.lineTo(cx+subW/2,SUBMV_Y);ctx.stroke();ctx.font='bold 13px Inter';ctx.fillStyle='#0a66c2';ctx.fillText('SUB-MV BUS',cx+subW/2+10,SUBMV_Y+5);ctx.restore();busCoords.push({name:'SUB-MV BUS',x:cx,y:SUBMV_Y});
     // MV Points
     let idx=0; feederConfig.forEach((cnt,fi)=>{const x=cx-((nF-1)/2)*sx+fi*sx;for(let j=0;j<cnt;j++){const y=SUBMV_Y+40+j*sy;mvPoints.push({x,y,name:`INV${1001+idx}`,feeder:fi+1});idx++;}});
-    // Cables
-    ctx.save();ctx.strokeStyle='#aaa';ctx.lineWidth=3; if(mvPoints.length){ctx.beginPath();ctx.moveTo(cx,SUBMV_Y);ctx.lineTo(mvPoints[0].x,mvPoints[0].y);ctx.stroke();}for(let i=0;i<mvPoints.length-1;i++){ctx.beginPath();ctx.moveTo(mvPoints[i].x,mvPoints[i].y);ctx.lineTo(mvPoints[i+1].x,mvPoints[i+1].y);ctx.stroke();}ctx.restore();
+    // Cables (split per feeder)
+    ctx.save(); ctx.strokeStyle='#aaa'; ctx.lineWidth=3;
+    // group points by feeder
+    const feederGroups = {};
+    mvPoints.forEach(pt => {
+      if (!feederGroups[pt.feeder]) feederGroups[pt.feeder] = [];
+      feederGroups[pt.feeder].push(pt);
+    });
+    Object.values(feederGroups).forEach(group => {
+      // sort by y
+      group.sort((a, b) => a.y - b.y);
+      // cable from subMV bus to first inverter
+      ctx.beginPath();
+      ctx.moveTo(cx - subW/2 + (group[0].feeder - 1) * sx + sx/2, SUBMV_Y); // X on SUB-MV corresponding feeder
+      ctx.lineTo(group[0].x, group[0].y);
+      ctx.stroke();
+      // chain between inverters
+      for (let i = 0; i < group.length - 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(group[i].x, group[i].y);
+        ctx.lineTo(group[i+1].x, group[i+1].y);
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
+
     // MV, PAD, LV
     mvPoints.forEach(pt=>{ctx.save();ctx.strokeStyle='red';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(pt.x-15,pt.y);ctx.lineTo(pt.x+15,pt.y);ctx.stroke();ctx.fillStyle='#000';ctx.font='12px Inter';ctx.fillText(pt.name,pt.x+18,pt.y+4);ctx.restore();busCoords.push({name:pt.name,x:pt.x,y:pt.y});
       const xPAD=pt.x+20,yPAD=pt.y+32;ctx.save();ctx.fillStyle='#2ecc71';ctx.fillRect(xPAD-8,yPAD-8,16,16);ctx.restore();busCoords.push({name:pt.name+'_PAD',x:xPAD,y:yPAD});
