@@ -78,196 +78,129 @@
 <script>
 let parsedLayout=[], poiOrigin={x:0,y:0}, busCoords=[], branches=[];
 let mvKV=34.5, lvKV=0.66;
-const container = document.getElementById('canvasContainer');
-const canvas = document.getElementById('schematicCanvas');
-const ctx = canvas.getContext('2d');
-const genBtn = document.getElementById('genBtn');
-const resetBtn = document.getElementById('resetBtn');
-const zoomInBtn = document.getElementById('zoomInBtn');
-const zoomOutBtn = document.getElementById('zoomOutBtn');
-const slider = document.getElementById('zoomSlider');
-const downloadLocBtn = document.getElementById('downloadLocBtn');
-const downloadIdvBtn = document.getElementById('downloadIdvBtn');
-const downloadBranchIdvBtn = document.getElementById('downloadBranchIdvBtn');
-const leftPane = document.getElementById('leftPane');
-const locPane = document.getElementById('locPane');
-const idvPane = document.getElementById('idvPane');
-const branchIdvPane = document.getElementById('branchIdvPane');
+const container=document.getElementById('canvasContainer'),
+      canvas=document.getElementById('schematicCanvas'),
+      ctx=canvas.getContext('2d'),
+      genBtn=document.getElementById('genBtn'),
+      resetBtn=document.getElementById('resetBtn'),
+      zoomInBtn=document.getElementById('zoomInBtn'),
+      zoomOutBtn=document.getElementById('zoomOutBtn'),
+      slider=document.getElementById('zoomSlider'),
+      downloadLocBtn=document.getElementById('downloadLocBtn'),
+      downloadIdvBtn=document.getElementById('downloadIdvBtn'),
+      downloadBranchIdvBtn=document.getElementById('downloadBranchIdvBtn'),
+      leftPane=document.getElementById('leftPane'),
+      locPane=document.getElementById('locPane'),
+      idvPane=document.getElementById('idvPane'),
+      branchIdvPane=document.getElementById('branchIdvPane');
 let scale=1, panX=0, panY=0, isPanning=false, startX=0, startY=0;
 
-// Pan & Zoom logic
-function updateTransform(){canvas.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;}  
+// Pan & Zoom
+function updateTransform(){canvas.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`;}  
 function resetView(){scale=1;panX=0;panY=0;updateTransform();slider.value=scale;}  
-function zoomTo(ns,cx=canvas.clientWidth/2,cy=canvas.clientHeight/2){  
-  panX-=(cx/scale-cx/ns);panY-=(cy/scale-cy/ns);scale=ns;updateTransform();slider.value=ns;
-}
-slider.addEventListener('input', e=>zoomTo(+e.target.value));
-resetBtn.addEventListener('click', resetView);
-zoomInBtn.addEventListener('click', ()=>zoomTo(Math.min(scale*1.1,3)));
-zoomOutBtn.addEventListener('click', ()=>zoomTo(Math.max(scale*0.9,0.1)));
-container.addEventListener('wheel',e=>{e.preventDefault();const d=-e.deltaY*0.001,ns=Math.min(Math.max(scale+d,0.1),3),r=canvas.getBoundingClientRect();zoomTo(ns,e.clientX-r.left,e.clientY-r.top)});
-container.addEventListener('mousedown',e=>{isPanning=true;container.classList.add('grabbing');startX=e.clientX-panX;startY=e.clientY-panY});
-document.addEventListener('mousemove',e=>{if(!isPanning)return;panX=e.clientX-startX;panY=e.clientY-startY;updateTransform()});
-document.addEventListener('mouseup',()=>{isPanning=false;container.classList.remove('grabbing')});
+function zoomTo(ns,cx=canvas.clientWidth/2,cy=canvas.clientHeight/2){panX-=(cx/scale-cx/ns);panY-=(cy/scale-cy/ns);scale=ns;updateTransform();slider.value=ns;}
+slider.addEventListener('input',e=>zoomTo(+e.target.value));
+resetBtn.addEventListener('click',resetView);
+zoomInBtn.addEventListener('click',()=>zoomTo(Math.min(scale*1.1,3)));
+zoomOutBtn.addEventListener('click',()=>zoomTo(Math.max(scale*0.9,0.1)));
+container.addEventListener('wheel',e=>{e.preventDefault();const d=-e.deltaY*0.001,ns=Math.min(Math.max(scale+d,0.1),3),r=canvas.getBoundingClientRect();zoomTo(ns,e.clientX-r.left,e.clientY-r.top);});
+container.addEventListener('mousedown',e=>{isPanning=true;container.classList.add('grabbing');startX=e.clientX-panX;startY=e.clientY-panY;});
+document.addEventListener('mousemove',e=>{if(!isPanning)return;panX=e.clientX-startX;panY=e.clientY-startY;updateTransform();});
+document.addEventListener('mouseup',()=>{isPanning=false;container.classList.remove('grabbing');});
 
 genBtn.addEventListener('click',generateCollector);
 
 function generateCollector(){
-  const total=+document.getElementById('total').value;
-  if(!total)return alert('Enter total inverters');
+  const total=+document.getElementById('total').value; if(!total)return alert('Enter total inverters');
   const perFeeder=+document.getElementById('perFeeder').value;
   const custom=document.getElementById('customFeeder').value.trim();
-  mvKV=+document.getElementById('mvVoltage').value;
-  lvKV=+document.getElementById('lvVoltage').value;
-  let feederConfig=[],rem=total;
-  if(custom){
-    feederConfig=custom.split(',').map(n=>+n).filter(n=>n>0);
+  mvKV=+document.getElementById('mvVoltage').value; lvKV=+document.getElementById('lvVoltage').value;
+  let feederConfig=[], rem=total;
+  if(custom){ feederConfig=custom.split(',').map(n=>+n).filter(n=>n>0);
     let sum=feederConfig.reduce((a,b)=>a+b,0);
     if(sum<total) while(sum++<total) feederConfig.push(1);
-    else if(sum>total){let run=0;feederConfig=feederConfig.filter(n=>{if(run+n<=total){run+=n;return true}if(run<total){feederConfig.push(total-run);run=total;return true}return false})}
-  }else{while(rem>0){const cnt=Math.min(perFeeder||total,rem);feederConfig.push(cnt);rem-=cnt}}
-  parsedLayout=[];
-  feederConfig.forEach((cnt,i)=>{for(let j=0;j<cnt;j++)parsedLayout.push({feeder:i+1,inverter:parsedLayout.length+1,voltageMV:mvKV,voltageLV:lvKV})});
-  drawLayout(feederConfig);
-  fitToContainer();
-  updatePanes();
+    else if(sum>total){ let run=0; feederConfig=feederConfig.filter(n=>{if(run+n<=total){run+=n;return true;} if(run<total){feederConfig.push(total-run);run=total;return true;} return false; }); }
+  } else { while(rem>0){ const cnt=Math.min(perFeeder||total,rem); feederConfig.push(cnt); rem-=cnt; } }
+  parsedLayout=[]; feederConfig.forEach((cnt,i)=>{ for(let j=0;j<cnt;j++) parsedLayout.push({feeder:i+1,inverter:parsedLayout.length+1}); });
+  drawLayout(feederConfig); fitToContainer(); updatePanes();
 }
 
 function drawLayout(feederConfig){
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  busCoords = [];
-  const centerX = 900, topY = 100, sx = 180, sy = 100, nFeeders = feederConfig.length;
-  const POI_Y = topY, GSU_Y = POI_Y+80, XFMR_Y = GSU_Y+50, SUBMV_Y = GSU_Y+160;
-  // Generator symbol + connector
-  ctx.save();
-  ctx.beginPath(); ctx.arc(centerX, POI_Y-35, 15, 0, 2*Math.PI); ctx.strokeStyle="#555"; ctx.lineWidth=2; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(centerX, POI_Y-20); ctx.lineTo(centerX, POI_Y); ctx.stroke();
-  ctx.font="bold 13px Inter"; ctx.fillStyle="#555"; ctx.fillText("GEN", centerX-20, POI_Y-45);
-  ctx.restore();
-  // POI bus, T-Line label
-  ctx.save();
-  ctx.beginPath(); ctx.arc(centerX, POI_Y, 10, 0, 2*Math.PI); ctx.fillStyle="#0a66c2"; ctx.fill();
-  ctx.font="bold 13px Inter"; ctx.fillStyle="#0a66c2"; ctx.fillText("POI BUS", centerX+14, POI_Y+5);
-  ctx.restore();
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height);
+  busCoords=[];
+  const centerX=900, topY=100, sx=180, sy=100, nF=feederConfig.length;
+  const POI_Y=topY, GSU_Y=POI_Y+80, XFMR_Y=GSU_Y+50, SUBMV_Y=GSU_Y+160;
+  // Generator
+  ctx.save(); ctx.beginPath(); ctx.arc(centerX,POI_Y-35,15,0,2*Math.PI); ctx.strokeStyle='#555'; ctx.lineWidth=2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(centerX,POI_Y-20); ctx.lineTo(centerX,POI_Y); ctx.stroke();
+  ctx.font='bold 13px Inter'; ctx.fillStyle='#555'; ctx.fillText('GEN',centerX-20,POI_Y-45); ctx.restore();
+  // POI bus
+  ctx.save(); ctx.beginPath(); ctx.arc(centerX,POI_Y,10,0,2*Math.PI); ctx.fillStyle='#0a66c2'; ctx.fill();
+  ctx.font='bold 13px Inter'; ctx.fillStyle='#0a66c2'; ctx.fillText('POI BUS',centerX+14,POI_Y+5); ctx.restore();
   busCoords.push({name:'POI BUS',x:centerX,y:POI_Y,padWidth:20,padHeight:0});
-  // T-Line label between POI and GSU
-  ctx.save(); ctx.font="12px Inter"; ctx.fillStyle="#333";
-  ctx.fillText("T-Line", centerX+8, (POI_Y+GSU_Y)/2);
-  ctx.restore();
+  // POI→GSU line
+  ctx.save(); ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(centerX,POI_Y); ctx.lineTo(centerX,GSU_Y); ctx.stroke(); ctx.restore();
+  // T-Line label
+  ctx.save(); ctx.font='12px Inter'; ctx.fillStyle='#333'; ctx.fillText('T-Line',centerX+8,(POI_Y+GSU_Y)/2); ctx.restore();
   // GSU HV bus
-  ctx.save();
-  ctx.beginPath(); ctx.arc(centerX, GSU_Y, 10, 0, 2*Math.PI); ctx.fillStyle="#0a66c2"; ctx.fill();
-  ctx.font="bold 13px Inter"; ctx.fillStyle="#0a66c2"; ctx.fillText("GSU HV BUS", centerX+14, GSU_Y+5);
-  ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.arc(centerX,GSU_Y,10,0,2*Math.PI); ctx.fillStyle='#0a66c2'; ctx.fill();
+  ctx.font='bold 13px Inter'; ctx.fillStyle='#0a66c2'; ctx.fillText('GSU HV BUS',centerX+14,GSU_Y+5); ctx.restore();
   busCoords.push({name:'GSU HV BUS',x:centerX,y:GSU_Y,padWidth:20,padHeight:0});
-  // GSU transformer box & connector
-  ctx.save();
-  ctx.beginPath(); ctx.moveTo(centerX,GSU_Y); ctx.lineTo(centerX,XFMR_Y); ctx.strokeStyle="#2ecc71"; ctx.lineWidth=3; ctx.stroke();
-  ctx.fillStyle="#2ecc71"; ctx.fillRect(centerX-13, XFMR_Y, 26, 44);
-  ctx.font="12px Inter"; ctx.fillStyle="#000"; ctx.fillText("GSU XFMR", centerX+18, XFMR_Y+25);
-  ctx.restore();
-  // SUB-MV bus as a blue line
-  const subW = (nFeeders-1)*sx + 60;
-  ctx.save();
-  ctx.strokeStyle="#0a66c2"; ctx.lineWidth=4;
-  ctx.beginPath(); ctx.moveTo(centerX - subW/2, SUBMV_Y); ctx.lineTo(centerX + subW/2, SUBMV_Y); ctx.stroke();
-  ctx.font="bold 13px Inter"; ctx.fillStyle="#0a66c2";
-  ctx.fillText("SUB-MV BUS", centerX+subW/2+10, SUBMV_Y+5);
-  ctx.restore();
+  // Transformer
+  ctx.save(); ctx.strokeStyle='#2ecc71'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(centerX,GSU_Y); ctx.lineTo(centerX,XFMR_Y); ctx.stroke();
+  ctx.fillStyle='#2ecc71'; ctx.fillRect(centerX-13,XFMR_Y,26,44); ctx.restore();
+  // Transformer→SUB-MV
+  ctx.save(); ctx.strokeStyle='#2ecc71'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(centerX,XFMR_Y+44); ctx.lineTo(centerX,SUBMV_Y); ctx.stroke(); ctx.restore();
+  // SUB-MV bus
+  const subW=(nF-1)*sx+60;
+  ctx.save(); ctx.strokeStyle='#0a66c2'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(centerX-subW/2,SUBMV_Y); ctx.lineTo(centerX+subW/2,SUBMV_Y); ctx.stroke();
+  ctx.font='bold 13px Inter'; ctx.fillStyle='#0a66c2'; ctx.fillText('SUB-MV BUS',centerX+subW/2+10,SUBMV_Y+5); ctx.restore();
   busCoords.push({name:'SUB-MV BUS',x:centerX,y:SUBMV_Y,padWidth:subW/2,padHeight:0});
-
-  // Feeders and inverters
-  let feederX0 = centerX - ((nFeeders-1)/2)*sx;
-  let globalInvIndex = 0;
-  for(let f=0; f<nFeeders; f++){
-    const nInv = feederConfig[f];
-    const x = feederX0 + f*sx;
-    // connect from submv line down
-    ctx.save(); ctx.strokeStyle="#aaa"; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(x, SUBMV_Y); ctx.lineTo(x, SUBMV_Y+40); ctx.stroke(); ctx.restore();
-    let prevY = SUBMV_Y+40;
-    for(let j=0; j<nInv; j++){
-      const y_MV = prevY + 60;
-      const y_PAD= y_MV + 32;
-      const y_LV = y_PAD + 32;
-      // feeder vertical
-      ctx.save(); ctx.strokeStyle="#aaa"; ctx.lineWidth=3;
-      ctx.beginPath(); ctx.moveTo(x, prevY); ctx.lineTo(x, y_MV); ctx.lineTo(x, y_PAD); ctx.lineTo(x, y_LV); ctx.stroke(); ctx.restore();
-      // MV bus red dot
-      const invName = `INV${1001+globalInvIndex}`;
-      ctx.save(); ctx.beginPath(); ctx.arc(x, y_MV, 8,0,2*Math.PI); ctx.fillStyle='red'; ctx.fill(); ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(invName, x+13, y_MV+4); ctx.restore();
-      busCoords.push({name:invName,x:x,y:y_MV,padWidth:10,padHeight:0});
-      // Padmount between
-      ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(x-8, y_PAD-8, 16,16); ctx.font='12px Inter'; ctx.fillStyle='#000'; ctx.fillText('PAD', x+13, y_PAD+4); ctx.restore();
-      // LV bus blue dot
-      const lvName = invName+'_LV';
-      ctx.save(); ctx.beginPath(); ctx.arc(x, y_LV,6,0,2*Math.PI); ctx.fillStyle='blue'; ctx.fill(); ctx.fillStyle='#000'; ctx.fillText(lvName,x+11,y_LV+4); ctx.restore();
-      busCoords.push({name:lvName,x:x,y:y_LV,padWidth:8,padHeight:0});
-      prevY = y_LV;
-      globalInvIndex++;
+  // Feeders
+  let x0=centerX-((nF-1)/2)*sx, invIdx=0;
+  feederConfig.forEach((cnt,fI)=>{
+    const x=x0+fI*sx;
+    // SUB-MV→first
+    ctx.save(); ctx.strokeStyle='#aaa'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(x,SUBMV_Y); ctx.lineTo(x,SUBMV_Y+40); ctx.stroke(); ctx.restore();
+    let prevY=SUBMV_Y+40;
+    for(let j=0;j<cnt;j++){
+      const yMV=prevY+60, yPAD=yMV+32, yLV=yPAD+32;
+      ctx.save(); ctx.strokeStyle='#aaa'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(x,prevY); ctx.lineTo(x,yMV); ctx.lineTo(x,yPAD); ctx.lineTo(x,yLV); ctx.stroke(); ctx.restore();
+      const invName=`INV${1001+invIdx}`;
+      // MV dot
+      ctx.save(); ctx.beginPath(); ctx.arc(x,yMV,8,0,2*Math.PI); ctx.fillStyle='red'; ctx.fill(); ctx.fillStyle='#000'; ctx.font='12px Inter'; ctx.fillText(invName,x+13,yMV+4); ctx.restore();
+      busCoords.push({name:invName,x:x,y:yMV,padWidth:10,padHeight:0});
+      // PAD
+      ctx.save(); ctx.fillStyle='#2ecc71'; ctx.fillRect(x-8,yPAD-8,16,16); ctx.font='12px Inter'; ctx.fillStyle='#000'; ctx.fillText('PAD',x+13,yPAD+4); ctx.restore();
+      // LV dot
+      const lvName=invName+'_LV';
+      ctx.save(); ctx.beginPath(); ctx.arc(x,yLV,6,0,2*Math.PI); ctx.fillStyle='blue'; ctx.fill(); ctx.fillStyle='#000'; ctx.fillText(lvName,x+11,yLV+4); ctx.restore();
+      busCoords.push({name:lvName,x:x,y:yLV,padWidth:8,padHeight:0});
+      prevY=yLV; invIdx++;
     }
-  }
+  });
 }
 
 function updatePanes(){
-  const coords = busCoords.filter(b=>!/^\d+(?:A|B)$/.test(b.name));
-  leftPane.textContent = coords.map(b=>{
-    const lon=Math.abs(b.x).toFixed(0).padStart(4)+(b.x<0?'W':'E');
-    const lat=Math.abs(b.y).toFixed(0).padStart(4)+(b.y<0?'S':'N');
-    return `${b.name.padEnd(12)} (${lon}, ${lat})`;
-  }).join('\n');
-  // .loc
-  let loc='GEOPHYSICAL\n';
-  coords.forEach(b=>{
-    let num=getBusNum(b.name);
-    const lon6=Math.abs(b.x).toFixed(6)+(b.x<0?'W':'E');
-    const lat6=Math.abs(b.y).toFixed(6)+(b.y<0?'S':'N');
-    loc+=`${num}  ${lon6}  ${lat6}  90  0.80\n`;
-  }); loc+='BRANCHES\n'; locPane.textContent=loc;
-  // .idv + branch
-  let idv='';
-  coords.forEach(b=>{
-    let num=getBusNum(b.name);
-    const type=b.name.endsWith('_LV')?2:1;
-    const kv = type===2?lvKV.toFixed(2):mvKV.toFixed(2);
-    idv+=`BAT_BUS_DATA_4,${num},0,1,1,1,1,0.0,1.0,0.0,1.1,0.9,1.1,0.9," "\n`;
-    idv+=`BAT_BUS_CHNG_4,${num},0,${type},,,,,,${kv},,,,,,,,'${b.name}'\n\n`;
-  });
-  // branch lines
-  const feeders=[]; let idx=0;
-  while(idx<parsedLayout.length){
-    const f=parsedLayout[idx].feeder;
-    const group=parsedLayout.filter(x=>x.feeder===f);
-    feeders.push(group.map((_,i)=>1001+idx+i));
-    idx+=group.length;
-  }
-  branches=[];
-  feeders.forEach(invArr=>{
-    if(invArr.length){branches.push([201,invArr[0]]);
-      for(let i=0;i<invArr.length-1;i++)branches.push([invArr[i],invArr[i+1]]);
-    }
-  });
-  let br='';
-  branches.forEach(([a,b])=>{
-    br+=`BAT_BRANCH_DATA_3,${a},${b},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0," "\n`;
-    br+=`BAT_BRANCH_CHNG_3,${a},${b},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;\n`;
-    br+=`BAT_NEWSEQ,;\n`;
-    br+=`BAT_SEQ_BRANCH_DATA_3,${a},${b},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`;
-  }); idvPane.textContent=idv; branchIdvPane.textContent=br;
+  const coords=busCoords.filter(b=>!/^[0-9]+[AB]?$/i.test(b.name));
+  leftPane.textContent=coords.map(b=>{const lon=Math.abs(b.x).toFixed(0).padStart(4)+(b.x<0?'W':'E'), lat=Math.abs(b.y).toFixed(0).padStart(4)+(b.y<0?'S':'N');return`${b.name.padEnd(12)} (${lon}, ${lat})`;}).join('\n');
+  let loc='GEOPHYSICAL\n';coords.forEach(b=>{let n=getBusNum(b.name), lon6=Math.abs(b.x).toFixed(6)+(b.x<0?'W':'E'), lat6=Math.abs(b.y).toFixed(6)+(b.y<0?'S':'N');loc+=`${n}  ${lon6}  ${lat6}  90  0.80\n`;}); loc+='BRANCHES\n'; locPane.textContent=loc;
+  let idv='';coords.forEach(b=>{let n=getBusNum(b.name), t=b.name.endsWith('_LV')?2:1, kv=t===2?lvKV.toFixed(2):mvKV.toFixed(2);idv+=`BAT_BUS_DATA_4,${n},0,1,1,1,1,0.0,1.0,0.0,1.1,0.9,1.1,0.9,\" \\"\n`;idv+=`BAT_BUS_CHNG_4,${n},0,${t},,,,,,${kv},,,,,,,,'${b.name}'\n\n`;});
+  const feeders=[], plen=parsedLayout.length; let idx=0;
+  while(idx<plen){let f=parsedLayout[idx].feeder; const grp=parsedLayout.filter(x=>x.feeder===f); feeders.push(grp.map((_,i)=>1001+idx+i)); idx+=grp.length; }
+  branches=[]; feeders.forEach(arr=>{ if(arr.length){ branches.push([201,arr[0]]); for(let i=0;i<arr.length-1;i++)branches.push([arr[i],arr[i+1]]);} });
+  let brTxt='';branches.forEach(([a,b])=>{brTxt+=`BAT_BRANCH_DATA_3,${a},${b},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,\" \"\n`;brTxt+=`BAT_BRANCH_CHNG_3,${a},${b},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;\n`;brTxt+=`BAT_NEWSEQ,;\n`;brTxt+=`BAT_SEQ_BRANCH_DATA_3,${a},${b},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`});
+  idvPane.textContent=idv; branchIdvPane.textContent=brTxt;
 }
-function getBusNum(name){
-  if(name==='POI BUS')return 100;
-  if(name==='GSU HV BUS')return 101;
-  if(name==='SUB-MV BUS')return 201;
-  const d=(name.match(/\d+/)||[''])[0];
-  return name.endsWith('_LV')?+d[0]+'0'+d.slice(1):+d;
-}
-downloadLocBtn.addEventListener('click',()=>{const txt=locPane.textContent;if(!txt)return alert('Generate');const blob=new Blob([txt],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='buses.loc';a.click();URL.revokeObjectURL(a.href);});
-downloadIdvBtn.addEventListener('click',()=>{const txt=idvPane.textContent;if(!txt)return alert('Generate');const blob=new Blob([txt],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bus.idv';a.click();URL.revokeObjectURL(a.href);});
-downloadBranchIdvBtn.addEventListener('click',()=>{const txt=branchIdvPane.textContent;if(!txt)return alert('Generate');const blob=new Blob([txt],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='branch.idv';a.click();URL.revokeObjectURL(a.href);});
-function fitToContainer(m=40){if(!busCoords.length)return;const X=[],Y=[];busCoords.forEach(p=>{X.push(p.x-p.padWidth,p.x+p.padWidth);Y.push(p.y-p.padHeight,p.y+p.padHeight)});const minX=Math.min(...X),maxX=Math.max(...X),minY=Math.min(...Y),maxY=Math.max(...Y),cW=(maxX-minX)+m*2,cH=(maxY-minY)+m*2,CW=container.clientWidth,CH=container.clientHeight,sX=CW/cW,sY=CH/cH,oX=(CW-cW*sX)/2-(minX-m)*sX,oY=(CH-cH*sY)/2-(minY-m)*sY;canvas.style.transform=`translate(${oX}px,${oY}px) scale(${sX},${sY})`;scale=Math.min(sX,sY);slider.value=scale;panX=oX;panY=oY;}
-window.addEventListener('resize',()=>fitToContainer());if('ResizeObserver' in window)new ResizeObserver(()=>fitToContainer()).observe(container);
+
+function getBusNum(name){if(name==='POI BUS')return 100; if(name==='GSU HV BUS')return 101; if(name==='SUB-MV BUS')return 201; const d=(name.match(/\d+/)||[''])[0]; return name.endsWith('_LV')?+d[0]+'0'+d.slice(1):+d;}
+[downloadLocBtn, downloadIdvBtn, downloadBranchIdvBtn].forEach(btn=>btn.addEventListener('click',()=>{const pane=btn===downloadLocBtn?locPane:(btn===downloadIdvBtn?idvPane:branchIdvPane);const txt=pane.textContent; if(!txt) return alert('Generate first'); const blob=new Blob([txt],{type:'text/plain'}),a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=btn===downloadLocBtn?'buses.loc':btn===downloadIdvBtn?'bus.idv':'branch.idv'; a.click(); URL.revokeObjectURL(a.href);}));
+
+function fitToContainer(m=40){ if(!busCoords.length) return; const X=[],Y=[]; busCoords.forEach(p=>{X.push(p.x-p.padWidth,p.x+p.padWidth);Y.push(p.y-p.padHeight,p.y+p.padHeight);}); const minX=Math.min(...X), maxX=Math.max(...X), minY=Math.min(...Y), maxY=Math.max(...Y); const cW=(maxX-minX)+m*2, cH=(maxY-minY)+m*2; const CW=container.clientWidth, CH=container.clientHeight; const sX=CW/cW, sY=CH/cH; const oX=(CW-cW*sX)/2-(minX-m)*sX, oY=(CH-cH*sY)/2-(minY-m)*sY; canvas.style.transform=`translate(${oX}px,${oY}px) scale(${sX},${sY})`; scale=Math.min(sX,sY); slider.value=scale; panX=oX; panY=oY; }
+window.addEventListener('resize',()=>fitToContainer()); if('ResizeObserver' in window) new ResizeObserver(()=>fitToContainer()).observe(container);
 </script>
 </body>
 </html>
