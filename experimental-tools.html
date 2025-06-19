@@ -78,12 +78,10 @@ const canvas = document.getElementById('schematicCanvas');
 const ctx = canvas.getContext('2d');
 const canvasContainer = document.getElementById('canvasContainer');
 
-touchEvents();
-
-function touchEvents(){
+// Pan & Zoom Handlers
+function touchEvents() {
   canvasContainer.addEventListener('mousedown', e => {
-    isPanning = true;
-    startPan = { x: e.clientX - translateX, y: e.clientY - translateY };
+    isPanning = true; startPan = { x: e.clientX - translateX, y: e.clientY - translateY };
     canvasContainer.classList.add('grabbing');
   });
   document.addEventListener('mousemove', e => {
@@ -93,17 +91,16 @@ function touchEvents(){
     drawLayout(lastFeederConfig);
   });
   document.addEventListener('mouseup', () => {
-    isPanning = false;
-    canvasContainer.classList.remove('grabbing');
+    isPanning = false; canvasContainer.classList.remove('grabbing');
   });
   canvasContainer.addEventListener('wheel', e => {
     e.preventDefault();
-    const mouseX = (e.clientX - translateX) / scale;
-    const mouseY = (e.clientY - translateY) / scale;
+    const mx = (e.clientX - translateX) / scale;
+    const my = (e.clientY - translateY) / scale;
     const delta = -e.deltaY * 0.001;
     const newScale = scale * (1 + delta);
-    translateX -= mouseX * (newScale - scale);
-    translateY -= mouseY * (newScale - scale);
+    translateX -= mx * (newScale - scale);
+    translateY -= my * (newScale - scale);
     scale = newScale;
     drawLayout(lastFeederConfig);
   }, { passive: false });
@@ -114,10 +111,7 @@ function touchEvents(){
       const [t1, t2] = e.touches;
       touchState.initialDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
       touchState.initialScale = scale;
-      touchState.center = {
-        x: (t1.clientX + t2.clientX)/2 - translateX,
-        y: (t1.clientY + t2.clientY)/2 - translateY
-      };
+      touchState.center = { x: (t1.clientX + t2.clientX)/2 - translateX, y: (t1.clientY + t2.clientY)/2 - translateY };
     } else if (e.touches.length === 1) {
       isPanning = true;
       startPan = { x: e.touches[0].clientX - translateX, y: e.touches[0].clientY - translateY };
@@ -129,10 +123,10 @@ function touchEvents(){
       const [t1, t2] = e.touches;
       const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
       const newScale = touchState.initialScale * (dist / touchState.initialDist);
-      const centerX = (t1.clientX + t2.clientX)/2;
-      const centerY = (t1.clientY + t2.clientY)/2;
-      translateX = centerX - touchState.center.x * newScale;
-      translateY = centerY - touchState.center.y * newScale;
+      const cx = (t1.clientX + t2.clientX)/2;
+      const cy = (t1.clientY + t2.clientY)/2;
+      translateX = cx - touchState.center.x * newScale;
+      translateY = cy - touchState.center.y * newScale;
       scale = newScale;
       drawLayout(lastFeederConfig);
     } else if (e.touches.length === 1 && isPanning) {
@@ -144,7 +138,9 @@ function touchEvents(){
   }, { passive: false });
   canvasContainer.addEventListener('touchend', () => { if (event.touches.length < 2) isPanning = false; });
 }
+touchEvents();
 
+// UI Elements
 const genBtn = document.getElementById('genBtn');
 const downloadLocBtn = document.getElementById('downloadLocBtn');
 const downloadBusIdvBtn = document.getElementById('downloadBusIdvBtn');
@@ -153,14 +149,12 @@ const leftPane = document.getElementById('leftPane');
 const locPane = document.getElementById('locPane');
 const idvPane = document.getElementById('idvPane');
 const branchPane = document.getElementById('branchPane');
-let busCoords = [], branches = [];
+let busCoords = [];
 let mvKV = 34.5, lvKV = 0.66;
 
 genBtn.addEventListener('click', generateCollector);
 
-defaults and helper functions remain unchanged
-
-function generateCollector() {
+def generateCollector() {
   const total = +document.getElementById('total').value;
   if (!total) return alert('Enter total inverters');
   const perFeeder = +document.getElementById('perFeeder').value;
@@ -181,11 +175,7 @@ function generateCollector() {
       });
     }
   } else {
-    while (rem > 0) {
-      const cnt = Math.min(perFeeder||total, rem);
-      feederConfig.push(cnt);
-      rem -= cnt;
-    }
+    while (rem > 0) { const cnt = Math.min(perFeeder||total, rem); feederConfig.push(cnt); rem -= cnt; }
   }
   lastFeederConfig = feederConfig;
   drawLayout(feederConfig);
@@ -193,146 +183,80 @@ function generateCollector() {
 }
 
 function drawLayout(feederConfig) {
-  // clear
   ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.restore();
-  // pan & zoom
   ctx.save(); ctx.setTransform(scale,0,0,scale,translateX,translateY);
-
   busCoords = [];
   const baseY = 100, sx = 180, sy = 100;
   const startX = 900 - ((feederConfig.length-1)/2) * sx;
   const busY = baseY + 160;
-
-  // connections: POI -> GSU HV -> transformer -> subMV
+  // POI > GSU HV > XFMR > SUB-MV
   ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(900, baseY); ctx.lineTo(900, baseY+80); ctx.lineTo(900, baseY+100); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(900, baseY+140); ctx.lineTo(900, busY); ctx.stroke();
-
-  // subMV horizontal bus
+  // sub-MV bus bar
   const busStartX = startX - sx/2;
-  const busEndX = startX + (feederConfig.length-1) * sx + sx/2;
+  const busEndX = startX + (feederConfig.length-1)*sx + sx/2;
   ctx.strokeStyle = '#2c7a7b'; ctx.lineWidth = 8;
   ctx.beginPath(); ctx.moveTo(busStartX, busY); ctx.lineTo(busEndX, busY); ctx.stroke();
-
-  // POI & GSU HV markers
-  ctx.fillStyle = '#0a66c2';
-  [['POI BUS',900,baseY], ['GSU HV BUS',900,baseY+80]].forEach(([name,x,y]) => {
-    ctx.beginPath(); ctx.arc(x,y,10,0,2*Math.PI); ctx.fill();
-    ctx.fillStyle = '#000'; ctx.fillText(name, x+15, y+5);
+  // POI & GSU HV symbols
+  ctx.fillStyle='#0a66c2';
+  [['POI BUS',900,baseY],['GSU HV BUS',900,baseY+80]].forEach(([n,x,y])=>{
+    ctx.beginPath(); ctx.arc(x,y,10,0,2*Math.PI); ctx.fill(); ctx.fillStyle='#000'; ctx.fillText(n,x+15,y+5);
   });
-
-  // transformer
-  ctx.fillStyle = '#2ecc71'; ctx.fillRect(890, baseY+100, 20, 40);
-  ctx.fillStyle = '#000'; ctx.fillText('GSU XFMR', 920, baseY+125);
-
-  // SUB-MV label (no dot)
-  ctx.fillStyle = '#000'; ctx.fillText('SUB-MV BUS', 915, busY+5);
-
+  // XFMR
+  ctx.fillStyle='#2ecc71'; ctx.fillRect(890, baseY+100,20,40); ctx.fillStyle='#000'; ctx.fillText('GSU XFMR',920,baseY+125);
+  // SUB-MV label
+  ctx.fillStyle='#000'; ctx.fillText('SUB-MV BUS',915,busY+5);
   // feeders
-  let invCounter = 0;
-  feederConfig.forEach((nInv,f) => {
-    const colX = startX + f * sx;
-    let prevY = busY;
-    for (let j = 0; j < nInv; j++) {
-      const mvY = baseY + 260 + j * sy;
-      const invName = `INV${1001 + invCounter}`;
-      const lvY = mvY + 30, padY = lvY + 30;
-      // lines
-      ctx.strokeStyle = '#aaa'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(colX, prevY); ctx.lineTo(colX, mvY); ctx.stroke();
-      ctx.strokeStyle = '#00c'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(colX, mvY); ctx.lineTo(colX, lvY); ctx.stroke();
-      ctx.strokeStyle = '#0a66c2'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(colX, lvY); ctx.lineTo(colX, padY); ctx.stroke();
-
-      // MV short bus
-      ctx.fillStyle = 'red'; ctx.fillRect(colX - 10, mvY - 2, 20, 4);
-      ctx.fillStyle = '#000'; ctx.fillText(invName, colX + 15, mvY + 5);
-      busCoords.push({ name: invName, x: colX, y: mvY });
-
+  let invCounter=0;
+  feederConfig.forEach((count,f)=>{
+    const colX=startX+f*sx;
+    let prevY=busY;
+    for(let i=0;i<count;i++){
+      const mvY=baseY+260+i*sy;
+      const name=`INV${1001+invCounter}`;
+      const lvY=mvY+30, padY=lvY+30;
+      // connections
+      ctx.strokeStyle='#aaa'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(colX,prevY); ctx.lineTo(colX,mvY); ctx.stroke();
+      ctx.strokeStyle='#00c'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(colX,mvY); ctx.lineTo(colX,lvY); ctx.stroke();
+      ctx.strokeStyle='#0a66c2'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(colX,lvY); ctx.lineTo(colX,padY); ctx.stroke();
+      // MV bus bar
+      ctx.fillStyle='red'; ctx.fillRect(colX-10,mvY-2,20,4);
+      ctx.fillStyle='#000'; ctx.fillText(name,colX+15,mvY+5);
+      busCoords.push({name,x:colX,y:mvY});
       // LV bus dot
-      ctx.fillStyle = 'blue'; ctx.beginPath(); ctx.arc(colX, lvY, 6, 0, 2 * Math.PI); ctx.fill();
-      ctx.fillStyle = '#000'; ctx.fillText(`${invName}_LV`, colX + 12, lvY + 5);
-      busCoords.push({ name: `${invName}_LV`, x: colX, y: lvY });
-
-      // padmount
-      ctx.fillStyle = '#2ecc71'; ctx.fillRect(colX - 8, padY - 8, 16, 16);
-      ctx.fillStyle = '#000'; ctx.fillText('PAD', colX + 12, padY + 5);
-      prevY = padY;
-      invCounter++;
+      ctx.fillStyle='blue'; ctx.beginPath(); ctx.arc(colX,lvY,6,0,2*Math.PI); ctx.fill(); ctx.fillStyle='#000'; ctx.fillText(name+'_LV',colX+12,lvY+5);
+      busCoords.push({name:`${name}_LV`,x:colX,y:lvY});
+      // pad
+      ctx.fillStyle='#2ecc71'; ctx.fillRect(colX-8,padY-8,16,16); ctx.fillStyle='#000'; ctx.fillText('PAD',colX+12,padY+5);
+      prevY=padY; invCounter++;
     }
   });
-
   ctx.restore();
 }
 
 function updatePanes() {
-  const coordsOnly = busCoords;
-  leftPane.textContent = coordsOnly.map(b => `${b.name.padEnd(12)} (${Math.round(b.x)}, ${Math.round(b.y)})`).join('\n');
-  // .loc output
-  let loc = 'GEOPHYSICAL\n';
-  coordsOnly.forEach(b => {
-    const num = getBusNum(b.name);
-    const lon6 = Math.abs(b.x).toFixed(6) + (b.x < 0 ? 'W' : 'E');
-    const lat6 = Math.abs(b.y).toFixed(6) + (b.y < 0 ? 'S' : 'N');
-    loc += `${num}  ${lon6}  ${lat6}  90  0.80\n`;
-  });
-  loc += 'BRANCHES\n';
-  locPane.textContent = loc;
-  // .idv output
-  let idv = '';
-  coordsOnly.forEach(b => {
-    const num = getBusNum(b.name);
-    const type = b.name.endsWith('_LV') ? 2 : 1;
-    const kv = (type === 2 ? lvKV : mvKV).toFixed(2);
-    idv += `BAT_BUS_DATA_4,${num},0,1,1,1,1,0.0,1.0,0.0,1.1,0.9,1.1,0.9,\" \"\n`;
-    idv += `BAT_BUS_CHNG_4,${num},0,${type},,,,,,${kv},,,,,,,,'${b.name}'\n\n`;
-  });
-  idvPane.textContent = idv;
-  // branches output
-  const feeders = [];
-  let idx = 0;
-  lastFeederConfig.forEach(count => {
-    const list = [];
-    for (let i = 0; i < count; i++) {
-      list.push(getBusNum(`INV${1001 + idx}`));
-      idx++;
-    }
-    feeders.push(list);
-  });
-  let br = '';
-  feeders.forEach(list => {
-    if (list.length) {
-      // SUB-MV to first
-      br += `BAT_BRANCH_DATA_3,201,${list[0]},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,\" \"\n`;
-      br += `BAT_BRANCH_CHNG_3,201,${list[0]},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;\n`;
-      br += `BAT_NEWSEQ,;\n`;
-      br += `BAT_SEQ_BRANCH_DATA_3,201,${list[0]},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`;
-      for (let i = 0; i < list.length - 1; i++) {
-        const a = list[i], b = list[i+1];
-        br += `BAT_BRANCH_DATA_3,${a},${b},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,\" \"\n`;
-        br += `BAT_BRANCH_CHNG_3,${a},${b},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;\n`;
-        br += `BAT_NEWSEQ,;\n`;
-        br += `BAT_SEQ_BRANCH_DATA_3,${a},${b},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`;
-      }
-    }
-  });
-  branchPane.textContent = br;
+  const coords=busCoords;
+  leftPane.textContent=coords.map(b=>`${b.name.padEnd(12)} (${Math.round(b.x)}, ${Math.round(b.y)})`).join('\n');
+  let loc='GEOPHYSICAL\n';
+  coords.forEach(b=>{const n=getBusNum(b.name);const lon=Math.abs(b.x).toFixed(6)+(b.x<0?'W':'E');const lat=Math.abs(b.y).toFixed(6)+(b.y<0?'S':'N');loc+=`${n}  ${lon}  ${lat}  90  0.80\n`;});
+  loc+='BRANCHES\n'; locPane.textContent=loc;
+  let idv='';
+  coords.forEach(b=>{const n=getBusNum(b.name);const t=b.name.endsWith('_LV')?2:1;const kv=(t===2?lvKV:mvKV).toFixed(2);idv+=`BAT_BUS_DATA_4,${n},0,1,1,1,1,0.0,1.0,0.0,1.1,0.9,1.1,0.9,\" \"\n`;idv+=`BAT_BUS_CHNG_4,${n},0,${t},,,,,,${kv},,,,,,,,'${b.name}'\n\n`;});
+  idvPane.textContent=idv;
+  const feeders=[];let idx=0;
+  lastFeederConfig.forEach(c=>{const arr=[];for(let i=0;i<c;i++){arr.push(getBusNum(`INV${1001+idx}`));idx++;}feeders.push(arr);});
+  let br='';
+  feeders.forEach(list=>{if(list.length){br+=`BAT_BRANCH_DATA_3,201,${list[0]},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.၀,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,\" \"\n`;br+=`BAT_BRANCH_CHNG_3,201,${list[0]},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,;,\n`;br+=`BAT_NEWSEQ,;\n`;br+=`BAT_SEQ_BRANCH_DATA_3,201,${list[0]},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`;for(let i=0;i<list.length-1;i++){const a=list[i],b=list[i+1];br+=`BAT_BRANCH_DATA_3,${a},${b},'2',1,1,1,0,0,0,0.0,0.0001,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,\" \"\n`;br+=`BAT_BRANCH_CHNG_3,${a},${b},'2',,,,,,,1111.0,2222.0,3333.0,,,,,4444.0,,,,,,,,,,,,,,,,,,;,\n`;br+=`BAT_NEWSEQ,;\n`;br+=`BAT_SEQ_BRANCH_DATA_3,${a},${b},'2',,6666.0,7777.0,8888.0,,,,,,;\n\n`;}}});
+  branchPane.textContent=br;
 }
 
-function getBusNum(name) {
-  if (name === 'POI BUS') return 100;
-  if (name === 'GSU HV BUS') return 101;
-  if (name === 'SUB-MV BUS') return 201;
-  const m = name.match(/INV(\d+)/);
-  if (m) {
-    const n = parseInt(m[1], 10);
-    return name.endsWith('_LV') ? n * 10 : n;
-  }
-  return 0;
-}
+function getBusNum(name){if(name==='POI BUS')return 100;if(name==='GSU HV BUS')return 101;if(name==='SUB-MV BUS')return 201;const m=name.match(/INV(\d+)/);if(m){const n=parseInt(m[1],10);return name.endsWith('_LV')?n*10:n;}return 0;}
 
-// Download handlers (unchanged from prior implementation)
+// Download Handlers
+downloadLocBtn.addEventListener('click',()=>{const txt=locPane.textContent;if(!txt) return alert('Generate first');const blob=new Blob([txt],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='buses.loc';a.click();URL.revokeObjectURL(a.href);});
+downloadBusIdvBtn.addEventListener('click',()=>{const txt=idvPane.textContent;if(!txt) return alert('Generate first');const blob=new Blob([txt],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bus.idv';a.click();URL.revokeObjectURL(a.href);});
+downloadCableIdvBtn.addEventListener('click',()=>{const txt=branchPane.textContent;if(!txt) return alert('Generate first');const blob=new Blob([txt],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cable.idv';a.click();URL.revokeObjectURL(a.href);});
 </script>
 </body>
 </html>
